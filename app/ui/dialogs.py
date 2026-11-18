@@ -30,10 +30,17 @@ from ..i18n import tr
 from ..settings import Settings
 from . import style
 
+_OFFICE_URL = (
+    "https://www.microsoft.com/microsoft-365/buy/compare-all-microsoft-365-products"
+)
+
 _INSTALL_URLS = {
     "pandoc": "https://pandoc.org/installing.html",
     "libreoffice": "https://www.libreoffice.org/download/",
     "calibre": "https://calibre-ebook.com/download",
+    "word": _OFFICE_URL,
+    "excel": _OFFICE_URL,
+    "powerpoint": _OFFICE_URL,
 }
 
 

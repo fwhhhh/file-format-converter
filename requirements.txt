@@ -6,3 +6,6 @@ openpyxl>=3.1
 Markdown>=3.7
 beautifulsoup4>=4.12
 markdownify>=0.13
+pypdfium2>=4.30
+pypdf>=5.0
+pywin32>=306; sys_platform == "win32"

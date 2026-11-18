@@ -13,6 +13,9 @@ This project bundles or depends on the following open-source components.
 | Markdown | BSD-3-Clause | Markdown to HTML |
 | BeautifulSoup | MIT | HTML to text |
 | markdownify | MIT | HTML to Markdown |
+| pywin32 | PSF-2.0 | Microsoft Office automation (COM) |
+| pypdfium2 | BSD-3-Clause AND Apache-2.0 | PDF page rendering |
+| pypdf | BSD-3-Clause | PDF text extraction |
 
 Notes:
 
@@ -20,3 +23,6 @@ Notes:
   executable. The LGPL build distributed with release packages is downloaded
   from <https://github.com/BtbN/FFmpeg-Builds> and the corresponding source
   code is available from <https://ffmpeg.org/download.html>.
+* Microsoft Office is **not redistributed**. Word, Excel and PowerPoint
+  conversions only use the copy that is already installed on the user's
+  computer, through COM automation.

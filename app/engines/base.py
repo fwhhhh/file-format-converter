@@ -32,6 +32,14 @@ class Engine:
     ) -> None:
         raise NotImplementedError
 
+    def artifact_name(self, stem: str, target: str) -> str:
+        """Return the output filename for a target format.
+
+        Most engines produce ``<stem>.<target>``; engines that emit an archive
+        of several files (PDF to page images) can override this.
+        """
+        return f"{stem}.{target}"
+
     def probe(self, path: Path) -> dict:
         return {}
 

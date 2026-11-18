@@ -10,7 +10,7 @@ AUDIO_EXTS = ["mp3", "wav", "flac", "aac", "m4a", "ogg", "opus", "wma"]
 ARCHIVE_EXTS = ["zip", "7z", "tar", "tar.gz", "tar.bz2", "tar.xz", "gz", "bz2", "xz"]
 TEXT_EXTS = ["txt", "md", "html"]
 TABLE_EXTS = ["csv", "xlsx"]
-DOCUMENT_EXTS = ["docx", "doc", "odt", "rtf", "pptx", "ppt", "pdf"]
+DOCUMENT_EXTS = ["docx", "doc", "odt", "rtf", "pptx", "ppt", "xls", "pdf"]
 EBOOK_EXTS = ["epub", "mobi", "azw3"]
 
 ALL_EXTS = (
@@ -99,6 +99,16 @@ def default_target(ext: str, targets: list[str]) -> str:
     group = group_of(ext)
     if group == "image" and ext == "gif" and "webp" in targets:
         return "webp"
+    if group == "document":
+        for candidate in ("docx", "pdf", "txt", "png", "jpg", "xlsx"):
+            if candidate in targets:
+                return candidate
+        return targets[0]
+    if group == "table":
+        for candidate in ("pdf", "xlsx", "csv"):
+            if candidate in targets:
+                return candidate
+        return targets[0]
     preference = {
         "image": ["png", "jpg", "webp"],
         "video": ["mp4", "mkv", "webm"],

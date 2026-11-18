@@ -1,6 +1,6 @@
 """File Format Converter application package."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 AUTHOR = "fwh_hhh"
 AUTHOR_EMAIL = "fwh_hhh@163.com"

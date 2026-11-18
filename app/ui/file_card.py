@@ -201,7 +201,10 @@ class FileCard(QFrame):
 
         self.flow = FlowLayout(None, 0, 8)
         for fmt in self.entry.targets:
-            chip = QPushButton(formats.display(fmt), self.body)
+            label = formats.display(fmt)
+            if self.entry.ext == "pdf" and fmt in ("png", "jpg"):
+                label = f"{label} · ZIP"
+            chip = QPushButton(label, self.body)
             chip.setObjectName("Chip")
             chip.setCheckable(True)
             chip.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -252,7 +255,9 @@ class FileCard(QFrame):
         size_text = human_size(self.entry.size)
         meta = self.entry.meta or {}
         group = formats.group_of(self.entry.ext)
-        if group == "image" and meta.get("width") and meta.get("height"):
+        if self.entry.ext == "pdf" and meta.get("pages"):
+            text = tr("pdf_info", pages=meta["pages"], size=size_text)
+        elif group == "image" and meta.get("width") and meta.get("height"):
             text = tr("image_info", w=meta["width"], h=meta["height"], size=size_text)
         elif group in ("video", "audio") and meta.get("duration"):
             text = tr("media_info", duration=format_duration(meta["duration"]), size=size_text)

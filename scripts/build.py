@@ -99,6 +99,10 @@ def main() -> int:
         f"{root / 'docs'}{separator}docs",
         "--add-data",
         f"{root / 'LICENSE'}{separator}.",
+        "--collect-all",
+        "pypdfium2",
+        "--collect-all",
+        "pypdfium2_raw",
     ]
 
     stage = Path(tempfile.mkdtemp(prefix="ffc_build_"))

@@ -12,17 +12,19 @@ in one run.
 ## Features
 
 - Drag & drop files or folders anywhere in the window
-- One collapsible card per file, with a checkbox list of valid target formats
+- One collapsible card per file, with a list of valid target formats as chips
 - Multi-select targets: `photo.jpg` + `PNG` + `PDF` produces both files
 - Real format detection from file signatures, so renamed files still convert
   correctly
 - Results show the actual output file icon, size and an "open folder" button
+- Word, Excel and PowerPoint documents convert through the installed Microsoft
+  Office; PDF files can be turned into Word, text or page images
 - Batch conversion with one overall progress bar; a failed file does not stop
   the others
 - Chinese / English UI, remembered between runs
 - Light / dark / follow-system themes
-- Engine status bar: optional Pandoc, LibreOffice and Calibre installations are
-  detected and will enable extra formats in a future release
+- Engine status bar: built-in engines plus installed Office applications and
+  optional Pandoc / LibreOffice / Calibre are detected and shown
 
 ## Supported conversions
 
@@ -35,6 +37,15 @@ in one run.
 | `zip` `7z` `tar` `tar.gz` `tar.bz2` `tar.xz` | `zip` `7z` `tar` `tar.gz` `tar.xz` | stdlib + py7zr |
 | `txt` `md` `html` | each other | Markdown, BeautifulSoup, markdownify |
 | `csv` `xlsx` | each other | openpyxl |
+| `docx` `doc` `odt` `rtf` | `pdf` | Microsoft Word (COM) |
+| `xlsx` `xls` | `pdf`; `xls` also to `xlsx` | Microsoft Excel (COM) |
+| `pptx` `ppt` | `pdf` | Microsoft PowerPoint (COM) |
+| `pdf` | `docx` (Word), `txt`, `png` / `jpg` (a ZIP of page images) | Word, pypdf, pypdfium2 |
+
+Office conversions use the copy of Microsoft Office that is already installed
+on the machine; Office is never bundled. PDF page images are rendered at about
+144 DPI and delivered as one ZIP per PDF. Office-based targets are Windows-only
+and are hidden on macOS/Linux.
 
 Video/audio conversions are re-encodes. A single file can be converted to
 several formats at once; each format is an independent job.
@@ -43,7 +54,9 @@ several formats at once; each format is an independent job.
 
 Grab the latest release, unzip it anywhere and run
 `FileFormatConverter.exe`. The release package includes the FFmpeg LGPL build,
-so no installation or PATH setup is required.
+so media conversion works without installation. Word/Excel/PowerPoint formats
+additionally require Microsoft Office to be installed on that computer; they
+are greyed out otherwise.
 
 ## Run from source
 
@@ -103,7 +116,7 @@ app/
   i18n.py            Chinese / English strings
   settings.py        QSettings wrapper
   core/              detection, models, job scheduling, helpers
-  engines/           image / media / archive / text / table converters
+  engines/           office / pdf / image / media / archive / text / table converters
   ui/                main window, file cards, dialogs, theme
 scripts/             dependency download, icon, screenshots
 tests/               pytest suite
@@ -112,14 +125,16 @@ vendor/              FFmpeg binaries (downloaded, not tracked by git)
 
 ## Known limitations
 
-- PDF → Word is not supported; converting PDF to an editable document is a
-  recognition problem rather than a format conversion.
-- Office documents and e-books (`docx`, `pptx`, `epub`, ...) need Pandoc /
-  LibreOffice / Calibre. They are detected today and will be wired up in the
-  next milestone.
+- PDF → Word uses Word's PDF reflow. Text-based PDFs convert well; scanned PDFs
+  have no text layer and would need OCR (not included yet).
+- Office conversions require Microsoft Office installed on the machine. The app
+  never bundles Office. LibreOffice as a free fallback is planned.
+- E-books (`epub`, `mobi`, `azw3`) and Pandoc-based formats (`odt` ↔ `md`,
+  etc.) are detected but not wired up yet.
 - Password-protected archives are rejected.
 - GIF output is a re-encoded animation; expect a larger file than a video.
 - XLSX to CSV converts the active worksheet only.
+- PDF → PNG / JPG returns one ZIP per PDF containing all pages.
 
 ## License
 

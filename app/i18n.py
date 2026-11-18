@@ -113,6 +113,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Text (Markdown / BeautifulSoup)",
     },
     "engine_table": {"zh": "表格（openpyxl）", "en": "Spreadsheets (openpyxl)"},
+    "engine_pdf": {"zh": "PDF（pypdfium2 / pypdf）", "en": "PDF (pypdfium2 / pypdf)"},
+    "engine_office": {
+        "zh": "Office（Word / Excel / PowerPoint）",
+        "en": "Office (Word / Excel / PowerPoint)",
+    },
+    "engine_word": {"zh": "Microsoft Word（Office）", "en": "Microsoft Word (Office)"},
+    "engine_excel": {"zh": "Microsoft Excel（Office）", "en": "Microsoft Excel (Office)"},
+    "engine_powerpoint": {
+        "zh": "Microsoft PowerPoint（Office）",
+        "en": "Microsoft PowerPoint (Office)",
+    },
     "engine_pandoc": {"zh": "文档转换（Pandoc，可选）", "en": "Documents (Pandoc, optional)"},
     "engine_libreoffice": {
         "zh": "办公文档（LibreOffice，可选）",
@@ -143,6 +154,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "image_info": {"zh": "{w}×{h} · {size}", "en": "{w}×{h} · {size}"},
     "media_info": {"zh": "{duration} · {size}", "en": "{duration} · {size}"},
+    "pdf_info": {"zh": "{pages} 页 · {size}", "en": "{pages} pages · {size}"},
     "preparing": {"zh": "准备中…", "en": "Preparing…"},
     "ready": {"zh": "就绪", "en": "Ready"},
     "quit_title": {"zh": "正在转换", "en": "Conversion in progress"},

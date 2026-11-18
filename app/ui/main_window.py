@@ -448,23 +448,35 @@ class MainWindow(QMainWindow):
             folder = custom_folder if custom_folder is not None else entry.path.parent
             stem = stem_for(entry.path, entry.ext)
             destinations: dict[str, Path] = {}
-            for fmt in ordered:
-                destinations[fmt] = unique_path(folder, stem, fmt, reserved)
-            card.prepare_results(destinations)
+            prepared = []
             for fmt in ordered:
                 engine = engine_for(entry.ext, fmt)
+                if engine is not None:
+                    artifact = engine.artifact_name(stem, fmt)
+                else:
+                    artifact = f"{stem}.{fmt}"
+                artifact_path = Path(artifact)
+                suffix = artifact_path.suffix.lstrip(".")
+                destination = unique_path(folder, artifact_path.stem, suffix, reserved)
+                destinations[fmt] = destination
+                prepared.append((fmt, engine, destination))
+            card.prepare_results(destinations)
+            for fmt, engine, destination in prepared:
                 if engine is None:
                     card.set_failed(fmt, tr("error_missing_engine"))
                     continue
                 job_id = f"{entry.entry_id}:{fmt}"
                 self.job_targets[job_id] = (entry.entry_id, fmt)
+                job_options = dict(options)
+                job_options["target_format"] = fmt
+                job_options["source_format"] = entry.ext
                 jobs.append(
                     ConvertJob(
                         job_id,
                         engine,
                         entry.path,
-                        destinations[fmt],
-                        options,
+                        destination,
+                        job_options,
                         self.signals,
                     )
                 )

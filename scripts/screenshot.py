@@ -27,6 +27,8 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from app import i18n  # noqa: E402
 from app.core.utils import project_root  # noqa: E402
+from app.engines.office import find_office_exe  # noqa: E402
+from app.main import _write_minimal_docx  # noqa: E402
 from app.ui.main_window import MainWindow  # noqa: E402
 from app.ui.theme import apply_theme  # noqa: E402
 
@@ -79,7 +81,12 @@ def create_samples(folder: Path) -> list[str]:
         handle.writestr("readme.txt", "hello")
         handle.writestr("src/main.c", "int main(void) { return 0; }")
 
-    paths = [str(photo), str(notes), str(data), str(archive)]
+    paths: list[str] = []
+    if find_office_exe("word"):
+        report = folder / "report.docx"
+        _write_minimal_docx(report)
+        paths.append(str(report))
+    paths.append(str(photo))
 
     ffmpeg = project_root() / "vendor" / "ffmpeg" / "bin" / "ffmpeg.exe"
     if ffmpeg.exists():
@@ -103,9 +110,10 @@ def create_samples(folder: Path) -> list[str]:
                 check=True,
                 creationflags=0x08000000,
             )
-            paths.insert(1, str(clip))
+            paths.append(str(clip))
         except (OSError, subprocess.SubprocessError):
             pass
+    paths.extend([str(notes), str(data), str(archive)])
     return paths
 
 
