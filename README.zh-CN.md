@@ -51,7 +51,7 @@ PDF 没有文字层（扫描件）时，PDF → TXT 会自动改用 Tesseract OC
 到 Releases 下载最新压缩包，解压后双击 `FileFormatConverter.exe` 即可。发布分两个版本：
 
 - **精简版**（约 134MB）：内置 FFmpeg 和 OCR 语言数据；Microsoft Office、LibreOffice、Pandoc、Tesseract、Calibre 装了就能用，没装时灰显。
-- **全内置版**（解压约 2.4GB；其中文档工具本身约 2.1GB）：额外打包 LibreOffice、Pandoc、Tesseract 与 Calibre，换一台全新 Windows 电脑也能直接处理文档、OCR 和电子书。Microsoft Office 受授权限制不能打包；PDF → Word 仍需要本机安装 Word。
+- **全内置版**（解压约 2.4GB，下载约 910MB；其中文档工具本身约 2.1GB）：额外打包 LibreOffice、Pandoc、Tesseract 与 Calibre，换一台全新 Windows 电脑也能直接处理文档、OCR 和电子书。Microsoft Office 受授权限制不能打包；PDF → Word 仍需要本机安装 Word。
 
 缺少的引擎会自动灰显。
 
