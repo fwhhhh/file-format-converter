@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+vendor/
+.pytest_cache/
+docs/screenshot.png
+selftest.txt
+*.spec
+*.log
