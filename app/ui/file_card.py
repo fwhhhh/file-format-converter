@@ -100,6 +100,21 @@ class ResultRow(QFrame):
         self._set_idle()
         self._set_status("…", "idle", tr("converting"))
 
+    def set_progress(self, fraction: float) -> None:
+        if self.kind in ("ok", "fail"):
+            return
+        percent = max(0, min(100, int(round(float(fraction) * 100))))
+        self._set_status("…", "idle", tr("converting"))
+        self.size_label.setText(f"{percent}%")
+
+    def set_cancelled(self) -> None:
+        self._set_status("–", "idle", tr("cancelled_label"))
+        self.icon_label.setVisible(False)
+        self.name_label.setText(f"{self.dst.name} · {tr('cancelled_label')}")
+        self.name_label.setToolTip(tr("cancelled_label"))
+        self.size_label.setText("")
+        self.open_button.setEnabled(False)
+
     def set_done(self, path: Path) -> None:
         self.dst = path
         self._set_status("✓", "ok", str(path))
@@ -299,6 +314,16 @@ class FileCard(QFrame):
         row = self.result_rows.get(fmt)
         if row is not None:
             row.set_running()
+
+    def set_progress(self, fmt: str, fraction: float) -> None:
+        row = self.result_rows.get(fmt)
+        if row is not None:
+            row.set_progress(fraction)
+
+    def set_cancelled(self, fmt: str) -> None:
+        row = self.result_rows.get(fmt)
+        if row is not None:
+            row.set_cancelled()
 
     def set_result(self, fmt: str, path: Path) -> None:
         row = self.result_rows.get(fmt)

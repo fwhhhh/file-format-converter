@@ -177,6 +177,13 @@ class SettingsDialog(QDialog):
         self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(settings.theme)))
         form.addRow(tr("theme"), self.theme_combo)
 
+        self.pdf_dpi_combo = QComboBox(self)
+        for dpi in (96, 144, 300):
+            self.pdf_dpi_combo.addItem(f"{dpi} DPI", dpi)
+        index = self.pdf_dpi_combo.findData(settings.pdf_dpi)
+        self.pdf_dpi_combo.setCurrentIndex(index if index >= 0 else 1)
+        form.addRow(tr("pdf_dpi"), self.pdf_dpi_combo)
+
         form.addRow(self._make_buttons())
 
     def _make_buttons(self) -> QDialogButtonBox:
@@ -195,6 +202,7 @@ class SettingsDialog(QDialog):
         self.settings.preset = str(self.preset_combo.currentData())
         self.settings.language = str(self.language_combo.currentData())
         self.settings.theme = str(self.theme_combo.currentData())
+        self.settings.pdf_dpi = int(self.pdf_dpi_combo.currentData())
         super().accept()
 
 

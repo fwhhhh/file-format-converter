@@ -12,25 +12,12 @@ import os
 import shutil
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 import PyInstaller.__main__
 
 
-def _copy_tool(source: Path, destination: Path, label: str) -> None:
-    started = time.time()
-    print(f"Bundling {label}: {source}")
-    if source.is_dir():
-        shutil.copytree(source, destination)
-    else:
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-    elapsed = time.time() - started
-    print(f"  done in {elapsed:.1f}s")
-
-
-def _bundle_full_tools(root: Path, stage_vendor: Path) -> bool:
+def _full_tool_sources(root: Path) -> dict[str, Path] | None:
     sys.path.insert(0, str(root))
     from app.engines.calibre import find_ebook_convert
     from app.engines.libreoffice import find_soffice
@@ -52,31 +39,50 @@ def _bundle_full_tools(root: Path, stage_vendor: Path) -> bool:
         missing.append("Calibre")
     if missing:
         print("Cannot build the full package, missing: " + ", ".join(missing))
-        return False
+        return None
+    return {
+        "pandoc": Path(pandoc),
+        "tesseract": Path(tesseract).parent,
+        "libreoffice": Path(soffice).parent.parent,
+        "calibre": Path(ebook_convert).parent,
+    }
 
-    pandoc_path = Path(pandoc)
-    _copy_tool(pandoc_path, stage_vendor / "pandoc" / "pandoc.exe", "Pandoc")
+
+def _copy_full_tools(
+    root: Path,
+    app_name: str,
+    sources: dict[str, Path],
+) -> None:
+    """Copy document tools after PyInstaller finishes.
+
+    Copying them through ``--add-data`` makes PyInstaller inspect their DLLs
+    (Calibre ships its own Qt/Python runtimes) and pull them into the
+    application root, which conflicts with PySide6.  A plain directory copy
+    after the build keeps them isolated under ``vendor``.
+    """
+    vendor = root / "dist" / app_name / "_internal" / "vendor"
+    vendor.mkdir(parents=True, exist_ok=True)
+
+    pandoc_dir = vendor / "pandoc"
+    pandoc_dir.mkdir(parents=True, exist_ok=True)
+    pandoc_exe = sources["pandoc"]
+    shutil.copy2(pandoc_exe, pandoc_dir / "pandoc.exe")
     for license_name in ("COPYING.txt", "COPYRIGHT.txt", "LICENSE.txt"):
-        license_path = pandoc_path.parent / license_name
+        license_path = pandoc_exe.parent / license_name
         if license_path.exists():
-            shutil.copy2(license_path, stage_vendor / "pandoc" / license_name)
+            shutil.copy2(license_path, pandoc_dir / license_name)
 
-    _copy_tool(
-        Path(tesseract).parent,
-        stage_vendor / "tesseract",
-        "Tesseract OCR",
-    )
-    _copy_tool(
-        Path(soffice).parent.parent,
-        stage_vendor / "libreoffice",
-        "LibreOffice",
-    )
-    _copy_tool(
-        Path(ebook_convert).parent,
-        stage_vendor / "calibre",
-        "Calibre",
-    )
-    return True
+    for key, name in (
+        ("tesseract", "tesseract"),
+        ("libreoffice", "libreoffice"),
+        ("calibre", "calibre"),
+    ):
+        target = vendor / name
+        if target.exists():
+            shutil.rmtree(target, ignore_errors=True)
+        print(f"Copying bundled {name}...")
+        shutil.copytree(sources[key], target)
+    print("Document tools copied into the package")
 
 
 def trim_dist(root: Path, app_name: str) -> None:
@@ -174,6 +180,11 @@ def main() -> int:
     ]
 
     stage = Path(tempfile.mkdtemp(prefix="ffc_build_"))
+    full_tools: dict[str, Path] | None = None
+    if args.full:
+        full_tools = _full_tool_sources(root)
+        if full_tools is None:
+            return 1
     try:
         stage_vendor = stage / "vendor"
         copied_vendor = False
@@ -186,10 +197,6 @@ def main() -> int:
                     ignore=shutil.ignore_patterns("*.zip"),
                 )
                 copied_vendor = True
-        if args.full:
-            if not _bundle_full_tools(root, stage_vendor):
-                return 1
-            copied_vendor = True
         if copied_vendor:
             arguments += ["--add-data", f"{stage_vendor}{separator}vendor"]
         arguments.append(str(root / "run.py"))
@@ -198,6 +205,8 @@ def main() -> int:
         shutil.rmtree(stage, ignore_errors=True)
 
     trim_dist(root, app_name)
+    if args.full and full_tools is not None:
+        _copy_full_tools(root, app_name, full_tools)
     dist_root = root / "dist" / app_name
     for source, name in (
         (root / "LICENSE", "LICENSE.txt"),

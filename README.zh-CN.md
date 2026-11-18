@@ -15,6 +15,8 @@
 - 转换完成后显示产物图标、实际大小，并可一键打开所在文件夹
 - Word / Excel / PowerPoint 文档优先通过本机 Microsoft Office 转换，没有 Office 时用 LibreOffice 兜底；PDF 可转 Word、文本或逐页图片
 - Pandoc 负责 Markdown / HTML / 文本与 docx / odt / rtf / epub 互转；Tesseract OCR 读取扫描版 PDF；Calibre 转换电子书
+- PDF 工具箱：合并 PDF、按页或每 N 页拆分、提取页码范围、把多张图片合成多页 PDF、按指定 DPI 和页码范围把 PDF 导出为图片
+- 转换中可取消，每个文件单独显示百分比，完成后有任务栏提醒
 - 批量转换只有一个总进度条；某个文件失败不影响其它文件
 - 中文 / English 界面，记住上次选择
 - 浅色 / 深色 / 跟随系统三种主题
@@ -134,6 +136,7 @@ vendor/              FFmpeg 可执行文件（下载所得，不进入 git）
 - PDF → Word 仍然需要本机安装 Microsoft Word；LibreOffice 无法把 PDF 还原成可编辑的 Word。其它文档转换在全内置版里不需要额外安装。
 - 精简版的 Office 格式需要 Microsoft Office 或 LibreOffice，Markdown 转换需要 Pandoc，OCR 需要 Tesseract，电子书需要 Calibre。
 - 不支持加密压缩包。
+- PDF 工具箱和 PDF 转换不支持加密 PDF。
 - GIF 输出是重新编码的动画，体积会比视频大。
 - XLSX 转 CSV 只转换当前工作表。
 - PDF 转 PNG / JPG 每份 PDF 输出一个包含全部页面的 ZIP；docx 转 Markdown 可能生成 `<名称>_media` 文件夹存放内嵌图片。

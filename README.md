@@ -22,6 +22,11 @@ in one run.
   text or page images
 - Pandoc handles Markdown / HTML / text ↔ docx / odt / rtf / epub, Tesseract OCR
   reads scanned PDFs into text, and Calibre converts e-books
+- PDF toolbox: merge PDFs, split by page or every N pages, extract page ranges,
+  combine images into a multi-page PDF, and export PDF pages as images with a
+  chosen DPI and page range
+- Cancel a running batch, see per-file percentage progress, and get a taskbar
+  alert when the batch finishes
 - Batch conversion with one overall progress bar; a failed file does not stop
   the others
 - Chinese / English UI, remembered between runs
@@ -167,6 +172,7 @@ vendor/              FFmpeg binaries (downloaded, not tracked by git)
 - The slim build requires Microsoft Office or LibreOffice for Office formats,
   Pandoc for Markdown conversions, Tesseract for OCR and Calibre for e-books.
 - Password-protected archives are rejected.
+- Password-protected PDFs are rejected by the PDF toolbox and PDF conversions.
 - GIF output is a re-encoded animation; expect a larger file than a video.
 - XLSX to CSV converts the active worksheet only.
 - PDF → PNG / JPG returns one ZIP per PDF containing all pages; docx → Markdown

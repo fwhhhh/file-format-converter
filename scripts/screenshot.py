@@ -39,6 +39,7 @@ class DummySettings:
     quality = 85
     preset = "balanced"
     custom_output_dir = ""
+    pdf_dpi = 144
 
 
 def create_samples(folder: Path) -> list[str]:

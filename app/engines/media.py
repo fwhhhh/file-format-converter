@@ -12,7 +12,7 @@ from pathlib import Path
 
 from ..core.formats import AUDIO_EXTS, VIDEO_EXTS
 from ..core.utils import project_root
-from .base import Engine, EngineError, Progress
+from .base import CancelledError, Engine, EngineError, Progress
 
 _CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
@@ -166,10 +166,15 @@ class MediaEngine(Engine):
         ffmpeg = _find_tool("ffmpeg")
         if not ffmpeg:
             raise EngineError("FFmpeg was not found")
+        cancel_event = options.get("cancel_event")
+        if cancel_event is not None and cancel_event.is_set():
+            raise CancelledError()
         target = dst.suffix.lower().lstrip(".")
         preset_name = str(options.get("preset", "balanced"))
         preset = _PRESETS.get(preset_name, _PRESETS["balanced"])
         duration = self._duration(src)
+        if cancel_event is not None and cancel_event.is_set():
+            raise CancelledError()
 
         command = [
             ffmpeg,
@@ -202,6 +207,13 @@ class MediaEngine(Engine):
         last_fraction = 0.0
         assert process.stdout is not None
         for line in process.stdout:
+            if cancel_event is not None and cancel_event.is_set():
+                process.kill()
+                try:
+                    process.wait(timeout=5)
+                except Exception:
+                    pass
+                raise CancelledError()
             line = line.strip()
             if not line.startswith("out_time_us="):
                 continue
@@ -220,6 +232,8 @@ class MediaEngine(Engine):
         if process.stderr is not None:
             error_text = process.stderr.read()
         return_code = process.wait()
+        if cancel_event is not None and cancel_event.is_set():
+            raise CancelledError()
         if return_code != 0:
             message = (error_text or "").strip()
             if not message:

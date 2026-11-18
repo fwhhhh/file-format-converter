@@ -67,3 +67,17 @@ class Settings:
     @custom_output_dir.setter
     def custom_output_dir(self, value: str) -> None:
         self._settings.setValue("output/custom_dir", value)
+
+    @property
+    def pdf_dpi(self) -> int:
+        try:
+            value = int(self._settings.value("pdf/dpi", 144))
+        except (TypeError, ValueError):
+            return 144
+        if value not in (96, 144, 300):
+            return 144
+        return value
+
+    @pdf_dpi.setter
+    def pdf_dpi(self, value: int) -> None:
+        self._settings.setValue("pdf/dpi", int(value))

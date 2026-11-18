@@ -371,12 +371,67 @@ def build_stylesheet(c: ThemeColors, down_arrow: str = "") -> str:
         spacing: 8px;
         font-size: 13px;
     }}
+    QSpinBox {{
+        background-color: {c.surface};
+        border: 1px solid {c.border};
+        border-radius: 8px;
+        padding: 6px 8px;
+        color: {c.text};
+        font-size: 13px;
+        min-height: 18px;
+    }}
+    QSpinBox:focus {{
+        border-color: {c.accent};
+    }}
+    QSpinBox::up-button, QSpinBox::down-button {{
+        width: 16px;
+        border: none;
+        background-color: transparent;
+    }}
+    QTabWidget::pane {{
+        border: 1px solid {c.border};
+        border-radius: 10px;
+        background-color: {c.surface};
+        top: -1px;
+    }}
+    QTabBar::tab {{
+        background-color: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 8px 14px;
+        color: {c.text_muted};
+        font-size: 13px;
+    }}
+    QTabBar::tab:selected {{
+        color: {c.accent};
+        border-bottom-color: {c.accent};
+        font-weight: 600;
+    }}
+    QTabBar::tab:hover {{
+        color: {c.text};
+    }}
 
     QListWidget#FileList {{
         background-color: transparent;
         border: none;
         outline: none;
         padding: 2px;
+    }}
+    QListWidget {{
+        background-color: {c.surface};
+        border: 1px solid {c.border};
+        border-radius: 8px;
+        outline: none;
+        padding: 4px;
+    }}
+    QListWidget::item {{
+        padding: 6px;
+        border-radius: 6px;
+        color: {c.text};
+    }}
+    QListWidget::item:selected {{
+        background-color: {c.selection_bg};
+        color: {c.selection_text};
     }}
     QListWidget#FileList::item {{
         border-radius: 8px;

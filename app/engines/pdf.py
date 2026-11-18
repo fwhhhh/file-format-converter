@@ -7,7 +7,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from .base import Engine, EngineError, Progress
+from .base import CancelledError, Engine, EngineError, Progress
 
 
 def _has_pdfium() -> bool:
@@ -56,17 +56,30 @@ class PdfEngine(Engine):
         progress: Progress | None = None,
     ) -> None:
         target = str(options.get("target_format") or dst.suffix.lower().lstrip("."))
+        if self._cancel_requested(options):
+            raise CancelledError()
         if target == "txt":
-            self._extract_text(src, dst, progress)
+            self._extract_text(src, dst, options, progress)
             return
         if target in ("png", "jpg"):
             self._render_pages(src, dst, target, options, progress)
             return
         raise EngineError(f"Unsupported PDF target: {target}")
 
+    @staticmethod
+    def _cancel_requested(options: dict) -> bool:
+        event = options.get("cancel_event")
+        return event is not None and event.is_set()
+
     # ------------------------------------------------------------- text
 
-    def _extract_text(self, src: Path, dst: Path, progress: Progress | None) -> None:
+    def _extract_text(
+        self,
+        src: Path,
+        dst: Path,
+        options: dict,
+        progress: Progress | None,
+    ) -> None:
         try:
             from pypdf import PdfReader
 
@@ -82,6 +95,8 @@ class PdfEngine(Engine):
                 raise EngineError("This PDF has no pages")
             parts: list[str] = []
             for page in pages:
+                if self._cancel_requested(options):
+                    raise CancelledError()
                 text = page.extract_text() or ""
                 if text.strip():
                     parts.append(text.strip())
@@ -90,7 +105,7 @@ class PdfEngine(Engine):
                 from .ocr import available as ocr_available
 
                 if ocr_available():
-                    self._ocr_pages(src, dst, progress)
+                    self._ocr_pages(src, dst, options, progress)
                     return
                 raise EngineError(
                     "No text layer found in this PDF (scanned document). "
@@ -99,12 +114,20 @@ class PdfEngine(Engine):
             dst.write_text(result + "\n", encoding="utf-8")
         except EngineError:
             raise
+        except CancelledError:
+            raise
         except Exception as exc:  # noqa: BLE001
             raise EngineError(str(exc)) from exc
         if progress is not None:
             progress(1.0)
 
-    def _ocr_pages(self, src: Path, dst: Path, progress: Progress | None) -> None:
+    def _ocr_pages(
+        self,
+        src: Path,
+        dst: Path,
+        options: dict,
+        progress: Progress | None,
+    ) -> None:
         try:
             import pypdfium2 as pdfium
 
@@ -120,6 +143,8 @@ class PdfEngine(Engine):
                 raise EngineError("This PDF has no pages")
             parts: list[str] = []
             for index in range(total):
+                if self._cancel_requested(options):
+                    raise CancelledError()
                 page = document[index]
                 try:
                     bitmap = page.render(scale=2.5)
@@ -147,6 +172,8 @@ class PdfEngine(Engine):
                 raise EngineError("OCR found no text in this PDF")
             dst.write_text(result + "\n", encoding="utf-8")
         except EngineError:
+            raise
+        except CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
             raise EngineError(str(exc)) from exc
@@ -177,6 +204,13 @@ class PdfEngine(Engine):
 
         quality = int(options.get("quality", 85))
         quality = max(1, min(100, quality))
+        try:
+            dpi = int(options.get("dpi", 144))
+        except (TypeError, ValueError):
+            dpi = 144
+        scale = max(dpi, 36) / 72.0
+        if self._cancel_requested(options):
+            raise CancelledError()
         temporary = Path(tempfile.mkdtemp(prefix="ffc_pdf_"))
         document = None
         try:
@@ -186,9 +220,11 @@ class PdfEngine(Engine):
                 raise EngineError("This PDF has no pages")
             images: list[Path] = []
             for index in range(total):
+                if self._cancel_requested(options):
+                    raise CancelledError()
                 page = document[index]
                 try:
-                    bitmap = page.render(scale=2.0)
+                    bitmap = page.render(scale=scale)
                     try:
                         image = bitmap.to_pil()
                     finally:
@@ -214,6 +250,8 @@ class PdfEngine(Engine):
                 for image_path in images:
                     archive.write(image_path, image_path.name)
         except EngineError:
+            raise
+        except CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
             raise EngineError(str(exc)) from exc

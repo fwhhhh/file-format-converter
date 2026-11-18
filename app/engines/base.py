@@ -10,6 +10,10 @@ class EngineError(Exception):
     """Raised when a conversion cannot be completed."""
 
 
+class CancelledError(Exception):
+    """Raised when the user cancels a running conversion."""
+
+
 Progress = Callable[[float], None]
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections import Counter
 from pathlib import Path
 
@@ -40,6 +41,7 @@ from ..i18n import tr, trn
 from ..settings import Settings
 from .dialogs import AboutDialog, EngineStatusDialog, OutputDialog, SettingsDialog
 from .file_card import FileCard
+from .pdf_tools import PdfToolsDialog
 from .theme import apply_theme
 from .widgets import FileDropList
 
@@ -56,12 +58,15 @@ class MainWindow(QMainWindow):
         self.jobs_total = 0
         self.jobs_done = 0
         self.jobs_failed = 0
+        self.jobs_cancelled = 0
+        self.cancel_event = threading.Event()
         self.job_progress: dict[str, float] = {}
         self.job_targets: dict[str, tuple[int, str]] = {}
         self.signals = JobSignals(self)
         self.signals.progress.connect(self._on_job_progress)
         self.signals.done.connect(self._on_job_done)
         self.signals.failed.connect(self._on_job_failed)
+        self.signals.cancelled.connect(self._on_job_cancelled)
         self.pool = QThreadPool(self)
         self.pool.setMaxThreadCount(3)
         self.icon_provider = QFileIconProvider()
@@ -116,6 +121,8 @@ class MainWindow(QMainWindow):
         self.action_add_folder.triggered.connect(self.choose_folder)
         self.action_clear = QAction(self)
         self.action_clear.triggered.connect(self.clear_entries)
+        self.action_pdf_tools = QAction(self)
+        self.action_pdf_tools.triggered.connect(self.open_pdf_tools)
         self.action_settings = QAction(self)
         self.action_settings.setShortcut(QKeySequence("Ctrl+,"))
         self.action_settings.triggered.connect(self.open_settings)
@@ -125,12 +132,18 @@ class MainWindow(QMainWindow):
             self.action_add_files,
             self.action_add_folder,
             self.action_clear,
+            self.action_pdf_tools,
             self.action_settings,
             self.action_about,
         ):
             self.addAction(action)
 
-        for action in (self.action_add_files, self.action_add_folder, self.action_clear):
+        for action in (
+            self.action_add_files,
+            self.action_add_folder,
+            self.action_clear,
+            self.action_pdf_tools,
+        ):
             top_layout.addWidget(self._top_button(action))
         top_layout.addStretch(1)
         for action in (self.action_settings, self.action_about):
@@ -206,9 +219,15 @@ class MainWindow(QMainWindow):
         self.start_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.start_button.setMinimumWidth(124)
         self.start_button.clicked.connect(self.start_conversion)
+        self.cancel_button = QPushButton(bottom)
+        self.cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.cancel_button.setMinimumWidth(104)
+        self.cancel_button.setVisible(False)
+        self.cancel_button.clicked.connect(self.cancel_conversion)
         bottom_layout.addWidget(self.progress, 1)
         bottom_layout.addWidget(self.progress_text)
         bottom_layout.addWidget(self.start_button)
+        bottom_layout.addWidget(self.cancel_button)
         content_layout.addWidget(bottom)
 
         root_layout.addWidget(content, 1)
@@ -239,8 +258,10 @@ class MainWindow(QMainWindow):
         self.action_add_files.setText(tr("add_files"))
         self.action_add_folder.setText(tr("add_folder"))
         self.action_clear.setText(tr("clear"))
+        self.action_pdf_tools.setText(tr("pdf_tools"))
         self.action_settings.setText(tr("settings"))
         self.action_about.setText(tr("about"))
+        self.cancel_button.setText(tr("cancel_conversion"))
         self.file_list.set_hint(tr("drop_hint"))
         self.empty_label.setText(tr("empty_right"))
         self._update_controls()
@@ -410,6 +431,9 @@ class MainWindow(QMainWindow):
     def show_about(self) -> None:
         AboutDialog(self).exec()
 
+    def open_pdf_tools(self) -> None:
+        PdfToolsDialog(self.settings, self).exec()
+
     def show_engines(self, _checked: bool = False) -> None:
         EngineStatusDialog(self).exec()
 
@@ -433,10 +457,15 @@ class MainWindow(QMainWindow):
             return
         custom_folder = dialog.custom_folder()
 
+        self.cancel_event = threading.Event()
         reserved: set[str] = set()
         jobs: list[ConvertJob] = []
         self.job_targets.clear()
-        options = {"quality": self.settings.quality, "preset": self.settings.preset}
+        options = {
+            "quality": self.settings.quality,
+            "preset": self.settings.preset,
+            "dpi": self.settings.pdf_dpi,
+        }
         for entry in self.entries.values():
             card = self.cards.get(entry.entry_id)
             if card is None:
@@ -478,6 +507,7 @@ class MainWindow(QMainWindow):
                         destination,
                         job_options,
                         self.signals,
+                        self.cancel_event,
                     )
                 )
                 card.set_running(fmt)
@@ -488,6 +518,7 @@ class MainWindow(QMainWindow):
         self.jobs_total = len(jobs)
         self.jobs_done = 0
         self.jobs_failed = 0
+        self.jobs_cancelled = 0
         self.job_progress.clear()
         self.progress.setRange(0, 1000)
         self.progress.setValue(0)
@@ -499,6 +530,12 @@ class MainWindow(QMainWindow):
 
     def _on_job_progress(self, job_id: str, fraction: float) -> None:
         self.job_progress[job_id] = max(0.0, min(1.0, float(fraction)))
+        target = self.job_targets.get(job_id)
+        if target is not None:
+            entry_id, fmt = target
+            card = self.cards.get(entry_id)
+            if card is not None:
+                card.set_progress(fmt, self.job_progress[job_id])
         self._refresh_progress()
 
     def _on_job_done(self, job_id: str, out_path: str) -> None:
@@ -526,6 +563,19 @@ class MainWindow(QMainWindow):
         self._refresh_progress()
         self._finish_if_done()
 
+    def _on_job_cancelled(self, job_id: str) -> None:
+        self.job_progress.pop(job_id, None)
+        target = self.job_targets.pop(job_id, None)
+        if target is not None:
+            entry_id, fmt = target
+            self.jobs_done += 1
+            self.jobs_cancelled += 1
+            card = self.cards.get(entry_id)
+            if card is not None:
+                card.set_cancelled(fmt)
+        self._refresh_progress()
+        self._finish_if_done()
+
     def _refresh_progress(self) -> None:
         if self.jobs_total <= 0:
             return
@@ -541,10 +591,22 @@ class MainWindow(QMainWindow):
         self._update_controls()
         self.progress.setValue(1000)
         self.progress_text.setText(f"{self.jobs_total}/{self.jobs_total}")
-        succeeded = self.jobs_total - self.jobs_failed
-        self.statusBar().showMessage(
-            tr("summary", ok=succeeded, fail=self.jobs_failed), 12000
-        )
+        succeeded = self.jobs_total - self.jobs_failed - self.jobs_cancelled
+        if self.jobs_cancelled:
+            message = tr(
+                "summary_cancelled",
+                ok=succeeded,
+                fail=self.jobs_failed,
+                cancelled=self.jobs_cancelled,
+            )
+        else:
+            message = tr("summary", ok=succeeded, fail=self.jobs_failed)
+        self.statusBar().showMessage(message, 12000)
+        if not self.isActiveWindow():
+            try:
+                QApplication.alert(self, 3000)
+            except Exception:
+                pass
 
     # -------------------------------------------------------------- controls
 
@@ -558,9 +620,19 @@ class MainWindow(QMainWindow):
         self.action_add_files.setEnabled(not self.running)
         self.action_add_folder.setEnabled(not self.running)
         self.action_clear.setEnabled(not self.running and has_entries)
+        self.action_pdf_tools.setEnabled(not self.running)
         self.file_list.setEnabled(not self.running)
         self.start_button.setText(tr("converting") if self.running else tr("start"))
         self.start_button.setEnabled(not self.running and has_entries and has_selection)
+        self.cancel_button.setVisible(self.running)
+        self.cancel_button.setEnabled(self.running and not self.cancel_event.is_set())
+
+    def cancel_conversion(self) -> None:
+        if not self.running:
+            return
+        self.cancel_event.set()
+        self.cancel_button.setEnabled(False)
+        self.statusBar().showMessage(tr("cancelling"))
 
     def _update_apply_buttons(self) -> None:
         counts = Counter(entry.ext for entry in self.entries.values())
@@ -611,6 +683,7 @@ class MainWindow(QMainWindow):
             if answer != QMessageBox.StandardButton.Yes:
                 event.ignore()
                 return
+            self.cancel_event.set()
             self.signals.blockSignals(True)
             self.pool.waitForDone()
         event.accept()
