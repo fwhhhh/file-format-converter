@@ -5,14 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QFileInfo, Qt, Signal
-from PySide6.QtGui import QFont, QPalette
 from PySide6.QtWidgets import (
-    QCheckBox,
     QFileIconProvider,
     QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -25,9 +24,6 @@ from ..i18n import tr, trn
 from .flow_layout import FlowLayout
 from .widgets import ElidedLabel
 
-_DONE_COLOR = "#2e7d32"
-_FAIL_COLOR = "#c62828"
-_IDLE_COLOR = "#888888"
 _ICON_PROVIDER: QFileIconProvider | None = None
 
 
@@ -38,27 +34,30 @@ def _icon_provider() -> QFileIconProvider:
     return _ICON_PROVIDER
 
 
-class ResultRow(QWidget):
+class ResultRow(QFrame):
     def __init__(self, fmt: str, dst: Path, parent=None) -> None:
         super().__init__(parent)
+        self.setObjectName("ResultRow")
         self.fmt = fmt
         self.dst = dst
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        self.kind = "idle"
 
-        self.status_label = QLabel("·")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 7, 10, 7)
+        layout.setSpacing(8)
+
+        self.status_label = QLabel("·", self)
         self.status_label.setFixedWidth(16)
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.icon_label = QLabel(self)
-        self.icon_label.setFixedSize(16, 16)
+        self.icon_label.setFixedSize(18, 18)
         self.icon_label.setVisible(False)
-        self.name_label = ElidedLabel(dst.name)
-        self.size_label = QLabel("")
-        self.size_label.setForegroundRole(QPalette.ColorRole.PlaceholderText)
-        self.open_button = QToolButton(self)
-        self.open_button.setAutoRaise(True)
-        self.open_button.setText(tr("open"))
+        self.name_label = ElidedLabel(dst.name, self)
+        self.size_label = QLabel("", self)
+        self.size_label.setObjectName("Muted")
+        self.open_button = QPushButton(tr("open"), self)
+        self.open_button.setObjectName("LinkGhost")
+        self.open_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.open_button.setToolTip(tr("open_folder"))
         self.open_button.setEnabled(False)
         self.open_button.clicked.connect(self._open_folder)
@@ -73,13 +72,20 @@ class ResultRow(QWidget):
     def _open_folder(self) -> None:
         open_path(self.dst.parent)
 
-    def _set_status(self, symbol: str, color: str, tooltip: str = "") -> None:
+    @staticmethod
+    def _repolish(widget: QWidget) -> None:
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+
+    def _set_status(self, symbol: str, kind: str, tooltip: str = "") -> None:
+        self.kind = kind
         self.status_label.setText(symbol)
-        self.status_label.setStyleSheet(f"color: {color}; font-weight: bold;")
+        self.status_label.setProperty("kind", kind)
+        self._repolish(self.status_label)
         self.status_label.setToolTip(tooltip)
 
     def _set_idle(self) -> None:
-        self._set_status("·", _IDLE_COLOR)
+        self._set_status("·", "idle")
         self.icon_label.setVisible(False)
         self.name_label.setText(self.dst.name)
         self.name_label.setToolTip(str(self.dst))
@@ -88,17 +94,17 @@ class ResultRow(QWidget):
 
     def set_waiting(self) -> None:
         self._set_idle()
-        self._set_status("·", _IDLE_COLOR, tr("waiting"))
+        self._set_status("·", "idle", tr("waiting"))
 
     def set_running(self) -> None:
         self._set_idle()
-        self._set_status("…", _IDLE_COLOR, tr("converting"))
+        self._set_status("…", "idle", tr("converting"))
 
     def set_done(self, path: Path) -> None:
         self.dst = path
-        self._set_status("✓", _DONE_COLOR, str(path))
+        self._set_status("✓", "ok", str(path))
         icon = _icon_provider().icon(QFileInfo(str(path)))
-        self.icon_label.setPixmap(icon.pixmap(16, 16))
+        self.icon_label.setPixmap(icon.pixmap(18, 18))
         self.icon_label.setToolTip(str(path))
         self.icon_label.setVisible(True)
         self.name_label.setText(path.name)
@@ -111,7 +117,7 @@ class ResultRow(QWidget):
         self.open_button.setEnabled(True)
 
     def set_failed(self, message: str) -> None:
-        self._set_status("✗", _FAIL_COLOR, message)
+        self._set_status("✗", "fail", message)
         self.icon_label.setVisible(False)
         self.name_label.setText(f"{self.dst.name} · {tr('failed')}")
         self.name_label.setToolTip(message)
@@ -121,6 +127,7 @@ class ResultRow(QWidget):
     def retranslate(self) -> None:
         self.open_button.setText(tr("open"))
         self.open_button.setToolTip(tr("open_folder"))
+        self._repolish(self.status_label)
 
 
 class FileCard(QFrame):
@@ -132,42 +139,53 @@ class FileCard(QFrame):
         self.entry = entry
         self.expanded = True
         self.selected: set[str] = set()
-        self.checkboxes: dict[str, QCheckBox] = {}
+        self.chips: dict[str, QPushButton] = {}
         self.result_rows: dict[str, ResultRow] = {}
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setObjectName("Card")
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self._build()
         default = formats.default_target(entry.ext, entry.targets)
         if default:
-            self.checkboxes[default].setChecked(True)
+            self.chips[default].setChecked(True)
         self._sync_selection()
 
     # ------------------------------------------------------------------ UI
 
     def _build(self) -> None:
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(10, 8, 10, 8)
-        outer.setSpacing(6)
+        outer.setContentsMargins(18, 14, 18, 14)
+        outer.setSpacing(10)
 
         header = QHBoxLayout()
-        header.setSpacing(6)
+        header.setSpacing(8)
         self.toggle_button = QToolButton(self)
-        self.toggle_button.setAutoRaise(True)
+        self.toggle_button.setObjectName("CardToggle")
         self.toggle_button.setText("▾")
+        self.toggle_button.setAutoRaise(True)
+        self.toggle_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.toggle_button.clicked.connect(self._toggle)
-        self.name_label = ElidedLabel(self.entry.path.name)
-        font = QFont(self.name_label.font())
-        font.setBold(True)
-        self.name_label.setFont(font)
+
+        self.file_icon = QLabel(self)
+        self.file_icon.setFixedSize(20, 20)
+        icon = _icon_provider().icon(QFileInfo(str(self.entry.path)))
+        pixmap = icon.pixmap(20, 20)
+        if not pixmap.isNull():
+            self.file_icon.setPixmap(pixmap)
+
+        self.name_label = ElidedLabel(self.entry.path.name, self)
+        self.name_label.setObjectName("CardTitle")
         self.name_label.setToolTip(str(self.entry.path))
-        self.meta_label = QLabel("")
-        self.meta_label.setForegroundRole(QPalette.ColorRole.PlaceholderText)
+        self.meta_label = QLabel("", self)
+        self.meta_label.setObjectName("Muted")
         self.apply_button = QPushButton(tr("apply_same"), self)
-        self.apply_button.setFlat(True)
+        self.apply_button.setObjectName("LinkGhost")
+        self.apply_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.apply_button.setVisible(False)
         self.apply_button.clicked.connect(
             lambda: self.apply_requested.emit(self.entry.entry_id, set(self.selected))
         )
         header.addWidget(self.toggle_button)
+        header.addWidget(self.file_icon)
         header.addWidget(self.name_label, 1)
         header.addWidget(self.meta_label)
         header.addWidget(self.apply_button)
@@ -175,26 +193,30 @@ class FileCard(QFrame):
 
         self.body = QWidget(self)
         body_layout = QVBoxLayout(self.body)
-        body_layout.setContentsMargins(22, 0, 0, 0)
-        body_layout.setSpacing(6)
+        body_layout.setContentsMargins(28, 0, 0, 0)
+        body_layout.setSpacing(10)
         self.targets_label = QLabel(tr("targets"), self.body)
-        self.targets_label.setForegroundRole(QPalette.ColorRole.PlaceholderText)
+        self.targets_label.setObjectName("Muted")
         body_layout.addWidget(self.targets_label)
 
         self.flow = FlowLayout(None, 0, 8)
         for fmt in self.entry.targets:
-            checkbox = QCheckBox(formats.display(fmt), self.body)
-            checkbox.toggled.connect(lambda checked, f=fmt: self._on_checkbox(f, checked))
-            self.checkboxes[fmt] = checkbox
-            self.flow.addWidget(checkbox)
+            chip = QPushButton(formats.display(fmt), self.body)
+            chip.setObjectName("Chip")
+            chip.setCheckable(True)
+            chip.setCursor(Qt.CursorShape.PointingHandCursor)
+            chip.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+            chip.toggled.connect(lambda checked, f=fmt: self._on_chip(f, checked))
+            self.chips[fmt] = chip
+            self.flow.addWidget(chip)
         body_layout.addLayout(self.flow)
 
         self.result_label = QLabel(tr("result"), self.body)
-        self.result_label.setForegroundRole(QPalette.ColorRole.PlaceholderText)
+        self.result_label.setObjectName("Muted")
         self.result_box = QWidget(self.body)
         self.result_layout = QVBoxLayout(self.result_box)
         self.result_layout.setContentsMargins(0, 0, 0, 0)
-        self.result_layout.setSpacing(4)
+        self.result_layout.setSpacing(6)
         body_layout.addWidget(self.result_label)
         body_layout.addWidget(self.result_box)
         self.result_label.setVisible(False)
@@ -209,7 +231,7 @@ class FileCard(QFrame):
         self.toggle_button.setText("▾" if self.expanded else "▸")
         self._update_meta()
 
-    def _on_checkbox(self, fmt: str, checked: bool) -> None:
+    def _on_chip(self, fmt: str, checked: bool) -> None:
         if checked:
             self.selected.add(fmt)
         else:
@@ -219,7 +241,7 @@ class FileCard(QFrame):
         self.selection_changed.emit()
 
     def _sync_selection(self) -> None:
-        self.selected = {fmt for fmt, box in self.checkboxes.items() if box.isChecked()}
+        self.selected = {fmt for fmt, chip in self.chips.items() if chip.isChecked()}
 
     def _update_meta(self) -> None:
         if not self.expanded:
@@ -245,10 +267,10 @@ class FileCard(QFrame):
         return set(self.selected)
 
     def set_selected_formats(self, formats_set: set[str]) -> None:
-        for fmt, checkbox in self.checkboxes.items():
-            checkbox.blockSignals(True)
-            checkbox.setChecked(fmt in formats_set)
-            checkbox.blockSignals(False)
+        for fmt, chip in self.chips.items():
+            chip.blockSignals(True)
+            chip.setChecked(fmt in formats_set)
+            chip.blockSignals(False)
         self._sync_selection()
         self._update_meta()
         self.selection_changed.emit()

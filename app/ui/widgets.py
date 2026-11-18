@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRect, Qt, Signal
-from PySide6.QtGui import QPainter, QPalette, QPen
+from PySide6.QtCore import QRect, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QLabel,
     QListWidget,
     QSizePolicy,
 )
+
+from . import style
 
 
 class ElidedLabel(QLabel):
@@ -35,12 +37,15 @@ class FileDropList(QListWidget):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self.setObjectName("FileList")
         self.setAcceptDrops(True)
         self.setDragDropMode(QAbstractItemView.DragDropMode.DropOnly)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setTextElideMode(Qt.TextElideMode.ElideMiddle)
         self.setWordWrap(False)
         self.setUniformItemSizes(True)
+        self.setIconSize(QSize(22, 22))
+        self.setSpacing(2)
         self._hint = ""
         self._drag_hover = False
 
@@ -89,17 +94,23 @@ class FileDropList(QListWidget):
     def paintEvent(self, event) -> None:  # noqa: N802
         super().paintEvent(event)
         if self.count() == 0 or self._drag_hover:
+            colors = style.current_colors()
             painter = QPainter(self.viewport())
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-            rect = self.viewport().rect().adjusted(5, 5, -5, -5)
-            pen = QPen(self.palette().color(QPalette.ColorRole.Mid))
+            rect = self.viewport().rect().adjusted(6, 6, -6, -6)
+            border = QColor(colors.accent)
+            if not self._drag_hover:
+                border.setAlpha(130)
+            pen = QPen(border)
             pen.setStyle(Qt.PenStyle.DashLine)
-            pen.setWidth(2)
+            pen.setWidthF(1.4)
             painter.setPen(pen)
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRoundedRect(rect, 8, 8)
+            fill = QColor(colors.accent_soft)
+            fill.setAlpha(160 if self._drag_hover else 120)
+            painter.setBrush(fill)
+            painter.drawRoundedRect(rect, 12, 12)
             if self.count() == 0:
-                painter.setPen(self.palette().color(QPalette.ColorRole.PlaceholderText))
+                painter.setPen(QColor(colors.text_muted))
                 font = self.font()
                 font.setPointSize(font.pointSize() + 1)
                 painter.setFont(font)

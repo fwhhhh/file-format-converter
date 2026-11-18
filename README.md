@@ -50,7 +50,7 @@ so no installation or PATH setup is required.
 Requirements: Python 3.10+ (Windows, macOS or Linux).
 
 ```bash
-git clone https://github.com/<your-name>/file-format-converter.git
+git clone https://github.com/fwhhhh/file-format-converter.git
 cd file-format-converter
 python -m venv .venv
 # Windows

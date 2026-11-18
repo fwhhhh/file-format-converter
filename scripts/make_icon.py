@@ -11,12 +11,12 @@ def build_icon() -> Image.Image:
     size = 256
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle([8, 8, size - 8, size - 8], radius=52, fill=(37, 99, 235, 255))
+    draw.rounded_rectangle([8, 8, size - 8, size - 8], radius=56, fill=(37, 99, 235, 255))
     white = (255, 255, 255, 255)
-    draw.line([(66, 100), (182, 100)], fill=white, width=16)
-    draw.polygon([(202, 100), (172, 80), (172, 120)], fill=white)
-    draw.line([(190, 156), (74, 156)], fill=white, width=16)
-    draw.polygon([(54, 156), (84, 136), (84, 176)], fill=white)
+    draw.line([(64, 98), (168, 98)], fill=white, width=20)
+    draw.polygon([(210, 98), (158, 64), (158, 132)], fill=white)
+    draw.line([(192, 158), (88, 158)], fill=white, width=20)
+    draw.polygon([(46, 158), (98, 124), (98, 192)], fill=white)
     return image
 
 

@@ -22,8 +22,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "把文件或文件夹拖到这里",
         "en": "Drop files or folders here",
     },
-    "files_count_one": {"zh": "共 {n} 个文件", "en": "{n} file"},
-    "files_count_many": {"zh": "共 {n} 个文件", "en": "{n} files"},
+    "files_title": {"zh": "文件 · {n}", "en": "Files · {n}"},
+    "files_empty": {"zh": "文件", "en": "Files"},
     "empty_right": {
         "zh": "拖入文件后，在这里勾选要转出的格式",
         "en": "Drop files, then pick the output formats here",
@@ -129,9 +129,9 @@ _STRINGS: dict[str, dict[str, str]] = {
               "for now they are only detected.",
     },
     "download": {"zh": "下载安装", "en": "Download"},
-    "engine_status_bar": {
-        "zh": "引擎：{ok}/{total} 可用，点击查看",
-        "en": "Engines: {ok}/{total} available, click for details",
+    "engine_pill": {
+        "zh": "引擎 {ok}/{total} 可用",
+        "en": "Engines {ok}/{total} available",
     },
     "engine_status_tip": {
         "zh": "点击查看各转换引擎的安装状态",
@@ -151,18 +151,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Some conversions are still running. Quitting will wait for them "
               "to finish. Quit anyway?",
     },
+    "github_label": {"zh": "GitHub", "en": "GitHub"},
+    "email_label": {"zh": "邮箱", "en": "Email"},
     "about_text": {
         "zh": (
-            "格式转换小工具 {version}\n\n"
             "图片、音视频、压缩包、文本、表格的自由转换。\n"
             "基于 PySide6、Pillow 与 FFmpeg。\n\n"
-            "开源协议：MIT"
+            "MIT License"
         ),
         "en": (
-            "File Format Converter {version}\n\n"
             "Convert images, audio/video, archives, text and spreadsheets.\n"
             "Built with PySide6, Pillow and FFmpeg.\n\n"
-            "License: MIT"
+            "MIT License"
         ),
     },
 }

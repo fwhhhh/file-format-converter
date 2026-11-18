@@ -1,72 +1,22 @@
-"""Theme helpers (light / dark, optionally following the system)."""
+"""Theme application: fonts, palette and the global style sheet."""
 
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
 
-_ACCENT = QColor(47, 111, 208)
-_ACCENT_TEXT = QColor(255, 255, 255)
+from ..core.utils import resource_path
+from . import style
+from .style import ThemeColors
 
-
-def _light_palette() -> QPalette:
-    palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor(240, 240, 240))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(20, 20, 20))
-    palette.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(246, 246, 246))
-    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(20, 20, 20))
-    palette.setColor(QPalette.ColorRole.Text, QColor(20, 20, 20))
-    palette.setColor(QPalette.ColorRole.Button, QColor(240, 240, 240))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(20, 20, 20))
-    palette.setColor(QPalette.ColorRole.BrightText, QColor(200, 30, 30))
-    palette.setColor(QPalette.ColorRole.Link, _ACCENT)
-    palette.setColor(QPalette.ColorRole.Highlight, _ACCENT)
-    palette.setColor(QPalette.ColorRole.HighlightedText, _ACCENT_TEXT)
-    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(135, 135, 135))
-    if hasattr(QPalette.ColorRole, "Accent"):
-        palette.setColor(QPalette.ColorRole.Accent, _ACCENT)
-    for role in (
-        QPalette.ColorRole.WindowText,
-        QPalette.ColorRole.Text,
-        QPalette.ColorRole.ButtonText,
-    ):
-        palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(150, 150, 150))
-    return palette
-
-
-def _dark_palette() -> QPalette:
-    palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor(43, 43, 43))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(228, 228, 228))
-    palette.setColor(QPalette.ColorRole.Base, QColor(30, 30, 30))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(50, 50, 50))
-    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(30, 30, 30))
-    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(228, 228, 228))
-    palette.setColor(QPalette.ColorRole.Text, QColor(228, 228, 228))
-    palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(228, 228, 228))
-    palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 90, 90))
-    palette.setColor(QPalette.ColorRole.Link, QColor(110, 170, 245))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(150, 150, 150))
-    palette.setColor(QPalette.ColorRole.Light, QColor(90, 90, 90))
-    palette.setColor(QPalette.ColorRole.Midlight, QColor(70, 70, 70))
-    palette.setColor(QPalette.ColorRole.Mid, QColor(60, 60, 60))
-    palette.setColor(QPalette.ColorRole.Dark, QColor(25, 25, 25))
-    palette.setColor(QPalette.ColorRole.Shadow, QColor(0, 0, 0))
-    if hasattr(QPalette.ColorRole, "Accent"):
-        palette.setColor(QPalette.ColorRole.Accent, QColor(42, 130, 218))
-    for role in (
-        QPalette.ColorRole.WindowText,
-        QPalette.ColorRole.Text,
-        QPalette.ColorRole.ButtonText,
-    ):
-        palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(120, 120, 120))
-    return palette
+_FONT_FAMILIES = [
+    "Microsoft YaHei UI",
+    "Microsoft YaHei",
+    "Segoe UI",
+    "Noto Sans CJK SC",
+    "Arial",
+]
 
 
 def system_is_dark(app: QApplication) -> bool:
@@ -76,9 +26,65 @@ def system_is_dark(app: QApplication) -> bool:
         return False
 
 
+def _palette(colors: ThemeColors) -> QPalette:
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor(colors.bg))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(colors.text))
+    palette.setColor(QPalette.ColorRole.Base, QColor(colors.surface))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(colors.surface_alt))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(colors.surface))
+    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(colors.text))
+    palette.setColor(QPalette.ColorRole.Text, QColor(colors.text))
+    palette.setColor(QPalette.ColorRole.Button, QColor(colors.surface))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor(colors.text))
+    palette.setColor(QPalette.ColorRole.BrightText, QColor(colors.danger))
+    palette.setColor(QPalette.ColorRole.Link, QColor(colors.accent))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(colors.accent))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(colors.accent_text))
+    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(colors.text_muted))
+    palette.setColor(QPalette.ColorRole.Light, QColor(colors.surface_hover))
+    palette.setColor(QPalette.ColorRole.Midlight, QColor(colors.surface_alt))
+    palette.setColor(QPalette.ColorRole.Mid, QColor(colors.border))
+    palette.setColor(QPalette.ColorRole.Dark, QColor(colors.bg))
+    palette.setColor(QPalette.ColorRole.Shadow, QColor(0, 0, 0))
+    if hasattr(QPalette.ColorRole, "Accent"):
+        palette.setColor(QPalette.ColorRole.Accent, QColor(colors.accent))
+    for role in (
+        QPalette.ColorRole.WindowText,
+        QPalette.ColorRole.Text,
+        QPalette.ColorRole.ButtonText,
+    ):
+        palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(colors.text_muted))
+    palette.setColor(
+        QPalette.ColorGroup.Disabled,
+        QPalette.ColorRole.Base,
+        QColor(colors.surface_alt),
+    )
+    palette.setColor(
+        QPalette.ColorGroup.Disabled,
+        QPalette.ColorRole.Button,
+        QColor(colors.surface_alt),
+    )
+    return palette
+
+
 def apply_theme(app: QApplication, mode: str) -> None:
-    """Apply one of: system, light, dark. Uses fixed palettes so the look is
-    identical on every machine (Windows accent colours are not inherited)."""
+    """Apply one of: system, light, dark.
+
+    A fixed palette and style sheet are used so the result looks the same on
+    every machine instead of inheriting Windows accent colours.
+    """
     app.setStyle("Fusion")
     use_dark = mode == "dark" or (mode == "system" and system_is_dark(app))
-    app.setPalette(_dark_palette() if use_dark else _light_palette())
+    colors = style.DARK if use_dark else style.LIGHT
+    style.set_current(colors)
+
+    font = QFont()
+    font.setFamilies(_FONT_FAMILIES)
+    font.setFamily(_FONT_FAMILIES[0])
+    font.setPointSize(10)
+    app.setFont(font)
+
+    app.setPalette(_palette(colors))
+    arrow = resource_path("assets/chevron-down.svg").as_posix()
+    app.setStyleSheet(style.build_stylesheet(colors, arrow))

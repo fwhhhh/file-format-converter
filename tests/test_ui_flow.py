@@ -56,7 +56,7 @@ def test_conversion_flow(qapp, tmp_path, monkeypatch):
         outputs = sorted(path.name for path in output_dir.iterdir())
         assert outputs == ["photo.jpg", "photo.webp"]
         assert window.progress.value() == 1000
-        assert window.progress.format() == "2/2"
+        assert window.progress_text.text() == "2/2"
         assert window.start_button.isEnabled()
     finally:
         window.close()

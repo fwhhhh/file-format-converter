@@ -6,12 +6,13 @@ from collections import Counter
 from pathlib import Path
 
 from PySide6.QtCore import QFileInfo, Qt, QThreadPool
-from PySide6.QtGui import QAction, QKeySequence, QPalette
+from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QFileDialog,
     QFileIconProvider,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QListWidgetItem,
@@ -23,21 +24,21 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSplitter,
-    QToolBar,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import __version__, i18n
+from .. import i18n
 from ..core import detect
 from ..core.formats import is_supported_ext
 from ..core.jobs import ConvertJob, JobSignals
 from ..core.models import Entry
-from ..core.utils import stem_for, unique_path
+from ..core.utils import resource_path, stem_for, unique_path
 from ..engines import engine_for, probe_metadata, status_entries, targets_for
 from ..i18n import tr, trn
 from ..settings import Settings
-from .dialogs import EngineStatusDialog, OutputDialog, SettingsDialog
+from .dialogs import AboutDialog, EngineStatusDialog, OutputDialog, SettingsDialog
 from .file_card import FileCard
 from .theme import apply_theme
 from .widgets import FileDropList
@@ -68,17 +69,45 @@ class MainWindow(QMainWindow):
 
         self._build_ui()
         self.retranslate()
-        self.resize(1040, 690)
-        self.setMinimumSize(880, 560)
+        self.resize(1120, 760)
+        self.setMinimumSize(960, 640)
         self.statusBar().showMessage(tr("ready"))
 
     # ------------------------------------------------------------- UI setup
 
     def _build_ui(self) -> None:
-        toolbar = QToolBar(self)
-        toolbar.setMovable(False)
-        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        self.addToolBar(toolbar)
+        central = QWidget(self)
+        central.setObjectName("Root")
+        central.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        root_layout = QVBoxLayout(central)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+
+        top_bar = QFrame(central)
+        top_bar.setObjectName("TopBar")
+        top_bar.setFixedHeight(58)
+        top_layout = QHBoxLayout(top_bar)
+        top_layout.setContentsMargins(18, 8, 14, 8)
+        top_layout.setSpacing(4)
+
+        self.brand_icon = QLabel(top_bar)
+        self.brand_icon.setFixedSize(24, 24)
+        icon = QIcon(str(resource_path("assets/app.ico")))
+        pixmap = icon.pixmap(24, 24)
+        if not pixmap.isNull():
+            self.brand_icon.setPixmap(pixmap)
+        self.brand_label = QLabel(top_bar)
+        self.brand_label.setObjectName("Brand")
+        top_layout.addWidget(self.brand_icon)
+        top_layout.addSpacing(8)
+        top_layout.addWidget(self.brand_label)
+        top_layout.addSpacing(12)
+
+        separator = QFrame(top_bar)
+        separator.setObjectName("TopSeparator")
+        separator.setFixedSize(1, 20)
+        top_layout.addWidget(separator)
+        top_layout.addSpacing(8)
 
         self.action_add_files = QAction(self)
         self.action_add_files.setShortcut(QKeySequence.StandardKey.Open)
@@ -87,36 +116,44 @@ class MainWindow(QMainWindow):
         self.action_add_folder.triggered.connect(self.choose_folder)
         self.action_clear = QAction(self)
         self.action_clear.triggered.connect(self.clear_entries)
-        toolbar.addAction(self.action_add_files)
-        toolbar.addAction(self.action_add_folder)
-        toolbar.addAction(self.action_clear)
-        toolbar.addSeparator()
-
-        spacer = QWidget(self)
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        toolbar.addWidget(spacer)
-
         self.action_settings = QAction(self)
         self.action_settings.setShortcut(QKeySequence("Ctrl+,"))
         self.action_settings.triggered.connect(self.open_settings)
         self.action_about = QAction(self)
         self.action_about.triggered.connect(self.show_about)
-        toolbar.addAction(self.action_settings)
-        toolbar.addAction(self.action_about)
+        for action in (
+            self.action_add_files,
+            self.action_add_folder,
+            self.action_clear,
+            self.action_settings,
+            self.action_about,
+        ):
+            self.addAction(action)
 
-        central = QWidget(self)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(8)
+        for action in (self.action_add_files, self.action_add_folder, self.action_clear):
+            top_layout.addWidget(self._top_button(action))
+        top_layout.addStretch(1)
+        for action in (self.action_settings, self.action_about):
+            top_layout.addWidget(self._top_button(action))
+        root_layout.addWidget(top_bar)
 
-        self.splitter = QSplitter(Qt.Orientation.Horizontal, central)
+        content = QWidget(central)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(18, 14, 18, 14)
+        content_layout.setSpacing(12)
+
+        self.splitter = QSplitter(Qt.Orientation.Horizontal, content)
         self.splitter.setChildrenCollapsible(False)
+        self.splitter.setHandleWidth(12)
 
-        left = QWidget(self.splitter)
+        left = QFrame(self.splitter)
+        left.setObjectName("Panel")
+        left.setMinimumWidth(260)
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(6)
+        left_layout.setContentsMargins(14, 12, 14, 12)
+        left_layout.setSpacing(10)
         self.files_label = QLabel(left)
+        self.files_label.setObjectName("SectionTitle")
         left_layout.addWidget(self.files_label)
         self.file_list = FileDropList(left)
         self.file_list.paths_dropped.connect(self.add_paths)
@@ -131,47 +168,74 @@ class MainWindow(QMainWindow):
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self.cards_host = QWidget(self.scroll)
+        self.cards_host.setObjectName("CardsHost")
         self.cards_layout = QVBoxLayout(self.cards_host)
         self.cards_layout.setContentsMargins(0, 0, 8, 0)
-        self.cards_layout.setSpacing(8)
+        self.cards_layout.setSpacing(12)
         self.empty_label = QLabel(self.cards_host)
+        self.empty_label.setObjectName("EmptyHint")
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setWordWrap(True)
-        self.empty_label.setForegroundRole(QPalette.ColorRole.PlaceholderText)
+        self.empty_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.cards_layout.addWidget(self.empty_label, 1)
         self.cards_layout.addStretch(1)
         self.scroll.setWidget(self.cards_host)
         self.splitter.addWidget(self.scroll)
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
-        self.splitter.setSizes([300, 740])
+        self.splitter.setSizes([320, 780])
 
-        bottom = QHBoxLayout()
-        bottom.setSpacing(10)
-        self.progress = QProgressBar(self)
+        content_layout.addWidget(self.splitter, 1)
+
+        bottom = QFrame(content)
+        bottom.setObjectName("BottomBar")
+        bottom_layout = QHBoxLayout(bottom)
+        bottom_layout.setContentsMargins(16, 10, 16, 10)
+        bottom_layout.setSpacing(14)
+        self.progress = QProgressBar(bottom)
         self.progress.setRange(0, 1000)
         self.progress.setValue(0)
-        self.progress.setFormat("0/0")
-        self.progress.setFixedWidth(260)
-        self.start_button = QPushButton(self)
+        self.progress.setTextVisible(False)
+        self.progress.setFixedHeight(8)
+        self.progress_text = QLabel("0/0", bottom)
+        self.progress_text.setObjectName("Muted")
+        self.progress_text.setMinimumWidth(46)
+        self.progress_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.start_button = QPushButton(bottom)
+        self.start_button.setObjectName("Primary")
+        self.start_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.start_button.setMinimumWidth(124)
         self.start_button.clicked.connect(self.start_conversion)
-        bottom.addWidget(self.progress)
-        bottom.addStretch(1)
-        bottom.addWidget(self.start_button)
+        bottom_layout.addWidget(self.progress, 1)
+        bottom_layout.addWidget(self.progress_text)
+        bottom_layout.addWidget(self.start_button)
+        content_layout.addWidget(bottom)
 
-        layout.addWidget(self.splitter, 1)
-        layout.addLayout(bottom)
+        root_layout.addWidget(content, 1)
         self.setCentralWidget(central)
 
-        self.engine_label = QLabel(self)
-        self.engine_label.setTextFormat(Qt.TextFormat.RichText)
-        self.engine_label.linkActivated.connect(self.show_engines)
-        self.statusBar().addPermanentWidget(self.engine_label)
+        status_bar = self.statusBar()
+        status_bar.setSizeGripEnabled(False)
+        self.engine_pill = QPushButton(self)
+        self.engine_pill.setObjectName("EnginePill")
+        self.engine_pill.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.engine_pill.clicked.connect(self.show_engines)
+        status_bar.addPermanentWidget(self.engine_pill)
+
+    def _top_button(self, action: QAction) -> QToolButton:
+        button = QToolButton(self)
+        button.setDefaultAction(action)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        button.setObjectName("Ghost")
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        return button
 
     # ------------------------------------------------------------ translation
 
     def retranslate(self) -> None:
         self.setWindowTitle(tr("app_title"))
+        self.brand_label.setText(tr("app_title"))
         self.action_add_files.setText(tr("add_files"))
         self.action_add_folder.setText(tr("add_folder"))
         self.action_clear.setText(tr("clear"))
@@ -188,9 +252,8 @@ class MainWindow(QMainWindow):
     def _update_engine_label(self) -> None:
         entries = status_entries()
         available = sum(1 for _key, _label, ok in entries if ok)
-        text = tr("engine_status_bar", ok=available, total=len(entries))
-        self.engine_label.setText(f'<a href="engines">{text}</a>')
-        self.engine_label.setToolTip(tr("engine_status_tip"))
+        self.engine_pill.setText(tr("engine_pill", ok=available, total=len(entries)))
+        self.engine_pill.setToolTip(tr("engine_status_tip"))
 
     # ------------------------------------------------------------- file input
 
@@ -290,6 +353,8 @@ class MainWindow(QMainWindow):
         self.items[entry.entry_id] = item
         self.empty_label.setVisible(False)
         self.file_list.setCurrentItem(item)
+        self.file_list.clearSelection()
+        item.setSelected(True)
         return card
 
     def _remove_entry(self, entry_id: int) -> None:
@@ -328,7 +393,7 @@ class MainWindow(QMainWindow):
         self.empty_label.setVisible(not self.entries)
         if not self.entries:
             self.progress.setValue(0)
-            self.progress.setFormat("0/0")
+            self.progress_text.setText("0/0")
         self._update_controls()
         self._update_apply_buttons()
 
@@ -343,9 +408,9 @@ class MainWindow(QMainWindow):
         self.retranslate()
 
     def show_about(self) -> None:
-        QMessageBox.about(self, tr("about"), tr("about_text", version=__version__))
+        AboutDialog(self).exec()
 
-    def show_engines(self, _link: str = "") -> None:
+    def show_engines(self, _checked: bool = False) -> None:
         EngineStatusDialog(self).exec()
 
     # ------------------------------------------------------------ conversion
@@ -414,7 +479,7 @@ class MainWindow(QMainWindow):
         self.job_progress.clear()
         self.progress.setRange(0, 1000)
         self.progress.setValue(0)
-        self.progress.setFormat(f"0/{self.jobs_total}")
+        self.progress_text.setText(f"0/{self.jobs_total}")
         self.statusBar().showMessage(tr("preparing"))
         self._update_controls()
         for job in jobs:
@@ -455,7 +520,7 @@ class MainWindow(QMainWindow):
         fraction = (self.jobs_done + sum(self.job_progress.values())) / self.jobs_total
         fraction = max(0.0, min(1.0, fraction))
         self.progress.setValue(int(fraction * 1000))
-        self.progress.setFormat(f"{self.jobs_done}/{self.jobs_total}")
+        self.progress_text.setText(f"{self.jobs_done}/{self.jobs_total}")
 
     def _finish_if_done(self) -> None:
         if not self.running or self.jobs_done < self.jobs_total:
@@ -463,7 +528,7 @@ class MainWindow(QMainWindow):
         self.running = False
         self._update_controls()
         self.progress.setValue(1000)
-        self.progress.setFormat(f"{self.jobs_total}/{self.jobs_total}")
+        self.progress_text.setText(f"{self.jobs_total}/{self.jobs_total}")
         succeeded = self.jobs_total - self.jobs_failed
         self.statusBar().showMessage(
             tr("summary", ok=succeeded, fail=self.jobs_failed), 12000
@@ -475,9 +540,7 @@ class MainWindow(QMainWindow):
         has_entries = bool(self.entries)
         has_selection = any(card.selected_formats() for card in self.cards.values())
         self.files_label.setText(
-            trn("files_count_one", "files_count_many", len(self.entries))
-            if has_entries
-            else ""
+            tr("files_title", n=len(self.entries)) if has_entries else tr("files_empty")
         )
         self.empty_label.setVisible(not has_entries)
         self.action_add_files.setEnabled(not self.running)
