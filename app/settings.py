@@ -81,3 +81,11 @@ class Settings:
     @pdf_dpi.setter
     def pdf_dpi(self, value: int) -> None:
         self._settings.setValue("pdf/dpi", int(value))
+
+    @property
+    def filename_suffix(self) -> str:
+        return str(self._settings.value("output/suffix", ""))
+
+    @filename_suffix.setter
+    def filename_suffix(self, value: str) -> None:
+        self._settings.setValue("output/suffix", value)

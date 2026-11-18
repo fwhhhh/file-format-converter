@@ -21,7 +21,9 @@ in one run.
   Office, with LibreOffice as a free fallback; PDF files can be turned into Word,
   text or page images
 - Pandoc handles Markdown / HTML / text ↔ docx / odt / rtf / epub, Tesseract OCR
-  reads scanned PDFs into text, and Calibre converts e-books
+  reads scanned PDFs into text or an editable OCR Word document, and Calibre
+  converts e-books
+- Optional filename suffix for converted files, set in Settings
 - PDF toolbox: merge PDFs, split by page or every N pages, extract page ranges,
   combine images into a multi-page PDF, and export PDF pages as images with a
   chosen DPI and page range
@@ -48,7 +50,7 @@ in one run.
 | `docx` `doc` `odt` `rtf` | `pdf` | Microsoft Word (COM) or LibreOffice |
 | `xlsx` `xls` | `pdf`; `xls` also to `xlsx` | Microsoft Excel (COM) or LibreOffice |
 | `pptx` `ppt` | `pdf` | Microsoft PowerPoint (COM) or LibreOffice |
-| `pdf` | `docx` (Word), `txt`, `png` / `jpg` (a ZIP of page images) | Word, pypdf, pypdfium2 |
+| `pdf` | `docx` (Word), `docx · OCR` (scanned PDFs), `txt`, `png` / `jpg` (a ZIP of page images) | Word, Tesseract, python-docx, pypdf, pypdfium2 |
 | `docx` `odt` `rtf` `epub` `md` `html` `txt` | `md` `html` `txt` `docx` `odt` `rtf` `epub` (except the source format) | Pandoc |
 | `epub` `mobi` `azw3` | `epub` `mobi` `azw3` `pdf` `txt` | Calibre |
 
@@ -165,8 +167,9 @@ vendor/              FFmpeg binaries (downloaded, not tracked by git)
 
 ## Known limitations
 
-- PDF → Word uses Word's PDF reflow. Text-based PDFs convert well; scanned PDFs
-  have no text layer and are converted as page images (PDF → TXT does use OCR).
+- PDF → Word uses Word's PDF reflow. Scanned PDFs can use the `DOCX · OCR`
+  target to produce an editable text document; page layout and images are not
+  reconstructed.
 - PDF → Word still requires Microsoft Word; LibreOffice cannot reconstruct an
   editable Word file from a PDF. Everything else works with the full build.
 - The slim build requires Microsoft Office or LibreOffice for Office formats,

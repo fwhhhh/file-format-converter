@@ -42,6 +42,8 @@ _ALIASES = {
     "y4m": "y4m",
 }
 
+_DISPLAY_OVERRIDES = {"docx_ocr": "DOCX · OCR"}
+
 _EXT_SET = set(ALL_EXTS)
 
 
@@ -64,7 +66,7 @@ def ext_of_path(path: Path) -> str:
 
 
 def display(ext: str) -> str:
-    return ext.upper()
+    return _DISPLAY_OVERRIDES.get(ext, ext.upper())
 
 
 def is_supported_ext(ext: str) -> bool:
@@ -100,7 +102,7 @@ def default_target(ext: str, targets: list[str]) -> str:
     if group == "image" and ext == "gif" and "webp" in targets:
         return "webp"
     if group == "document":
-        for candidate in ("pdf", "docx", "txt", "png", "jpg", "xlsx"):
+        for candidate in ("pdf", "docx", "docx_ocr", "txt", "png", "jpg", "xlsx"):
             if candidate in targets:
                 return candidate
         return targets[0]

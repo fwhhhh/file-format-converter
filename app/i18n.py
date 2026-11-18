@@ -159,6 +159,11 @@ _STRINGS: dict[str, dict[str, str]] = {
     "preparing": {"zh": "准备中…", "en": "Preparing…"},
     "ready": {"zh": "就绪", "en": "Ready"},
     "pdf_dpi": {"zh": "PDF 图片分辨率", "en": "PDF image DPI"},
+    "filename_suffix": {"zh": "输出文件名后缀", "en": "Filename suffix"},
+    "filename_suffix_hint": {
+        "zh": "例如 _converted，留空则不添加",
+        "en": "e.g. _converted; leave empty for none",
+    },
     "pdf_tools": {"zh": "PDF 工具", "en": "PDF tools"},
     "pdf_merge": {"zh": "合并 PDF", "en": "Merge PDFs"},
     "pdf_split": {"zh": "拆分 PDF", "en": "Split PDF"},

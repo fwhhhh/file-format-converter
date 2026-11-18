@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +42,14 @@ def stem_for(path: Path, ext: str) -> str:
     if path.name.lower().endswith(suffix):
         return path.name[: -len(suffix)]
     return path.stem
+
+
+def sanitize_filename_suffix(text: str) -> str:
+    """Strip characters that are not valid in a Windows file name."""
+    if not text:
+        return ""
+    cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", text)
+    return cleaned.strip().rstrip(".")[:32]
 
 
 def unique_path(folder: Path, stem: str, ext: str, reserved: set[str]) -> Path:

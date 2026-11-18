@@ -54,8 +54,7 @@ def test_pandoc_gbk_text_to_docx(tmp_path):
     assert "中文内容测试" in back.read_text(encoding="utf-8")
 
 
-@pytest.mark.skipif(not ocr_available(), reason="Tesseract OCR is not available")
-def test_scanned_pdf_text_extraction_uses_ocr(tmp_path):
+def _make_scan_pdf(tmp_path):
     from PIL import Image, ImageDraw, ImageFont
 
     from app.engines.image import ImageEngine
@@ -73,8 +72,27 @@ def test_scanned_pdf_text_extraction_uses_ocr(tmp_path):
     pdf = tmp_path / "scan.pdf"
     ImageEngine().convert(png, pdf, {})
     assert pdf.read_bytes().startswith(b"%PDF")
+    return pdf
 
+
+@pytest.mark.skipif(not ocr_available(), reason="Tesseract OCR is not available")
+def test_scanned_pdf_text_extraction_uses_ocr(tmp_path):
+    pdf = _make_scan_pdf(tmp_path)
     text_path = tmp_path / "scan.txt"
     PdfEngine().convert(pdf, text_path, {"target_format": "txt"})
     text = text_path.read_text(encoding="utf-8")
     assert "SCAN" in text or "123" in text
+
+
+@pytest.mark.skipif(not ocr_available(), reason="Tesseract OCR is not available")
+def test_scanned_pdf_to_ocr_docx(tmp_path):
+    pdf = _make_scan_pdf(tmp_path)
+    assert "docx_ocr" in targets_for("pdf")
+
+    target = tmp_path / "scan_ocr.docx"
+    engine = engine_for("pdf", "docx_ocr")
+    assert engine is not None
+    engine.convert(pdf, target, {"target_format": "docx_ocr", "source_format": "pdf"})
+    with zipfile.ZipFile(target) as archive:
+        xml = archive.read("word/document.xml").decode("utf-8")
+    assert "SCAN" in xml or "123" in xml

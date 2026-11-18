@@ -10,7 +10,13 @@ from pathlib import Path
 import pytest
 
 from app.core import detect, formats
-from app.core.utils import format_duration, human_size, stem_for, unique_path
+from app.core.utils import (
+    format_duration,
+    human_size,
+    sanitize_filename_suffix,
+    stem_for,
+    unique_path,
+)
 from app.engines.archive import ArchiveEngine
 from app.engines.image import ImageEngine
 from app.engines.table import TableEngine
@@ -318,6 +324,13 @@ def test_stem_for_compound():
     assert stem_for(Path("archive.tar.gz"), "tar.gz") == "archive"
     assert stem_for(Path("photo.JPG"), "jpg") == "photo"
     assert stem_for(Path("note.md"), "md") == "note"
+
+
+def test_sanitize_filename_suffix():
+    assert sanitize_filename_suffix("_converted") == "_converted"
+    assert sanitize_filename_suffix('a/b:c*?') == "abc"
+    assert sanitize_filename_suffix("   ") == ""
+    assert len(sanitize_filename_suffix("x" * 100)) == 32
 
 
 def test_default_targets():

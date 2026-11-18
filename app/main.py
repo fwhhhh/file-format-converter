@@ -244,6 +244,21 @@ def run_selftest() -> int:
                 if "SCAN" not in text and "123" not in text:
                     raise RuntimeError("OCR did not recognize the sample text")
                 lines.append(f"OK   scanned pdf -> ocr txt ({len(text)} chars)")
+
+                scan_docx = temp_root / "scan_ocr.docx"
+                engine = engine_for("pdf", "docx_ocr")
+                if engine is None:
+                    raise RuntimeError("OCR to Word engine is unavailable")
+                engine.convert(
+                    scan_pdf,
+                    scan_docx,
+                    {"target_format": "docx_ocr", "source_format": "pdf"},
+                )
+                with zipfile.ZipFile(scan_docx) as archive:
+                    document_xml = archive.read("word/document.xml").decode("utf-8")
+                if "SCAN" not in document_xml and "123" not in document_xml:
+                    raise RuntimeError("OCR to Word document has no recognized text")
+                lines.append(f"OK   scanned pdf -> ocr docx ({scan_docx.stat().st_size} bytes)")
             except Exception as exc:  # noqa: BLE001
                 lines.append(f"FAIL OCR pipeline: {exc}")
         else:

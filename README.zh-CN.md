@@ -14,7 +14,8 @@
 - 按文件头识别真实格式，改了后缀的文件也能正确转换
 - 转换完成后显示产物图标、实际大小，并可一键打开所在文件夹
 - Word / Excel / PowerPoint 文档优先通过本机 Microsoft Office 转换，没有 Office 时用 LibreOffice 兜底；PDF 可转 Word、文本或逐页图片
-- Pandoc 负责 Markdown / HTML / 文本与 docx / odt / rtf / epub 互转；Tesseract OCR 读取扫描版 PDF；Calibre 转换电子书
+- Pandoc 负责 Markdown / HTML / 文本与 docx / odt / rtf / epub 互转；Tesseract OCR 可把扫描版 PDF 识别为文本或可编辑的 Word；Calibre 转换电子书
+- 可在设置里为输出文件名添加后缀
 - PDF 工具箱：合并 PDF、按页或每 N 页拆分、提取页码范围、把多张图片合成多页 PDF、按指定 DPI 和页码范围把 PDF 导出为图片
 - 转换中可取消，每个文件单独显示百分比，完成后有任务栏提醒
 - 批量转换只有一个总进度条；某个文件失败不影响其它文件
@@ -36,7 +37,7 @@
 | `docx` `doc` `odt` `rtf` | `pdf` | Microsoft Word（COM）或 LibreOffice |
 | `xlsx` `xls` | `pdf`；`xls` 还可转 `xlsx` | Microsoft Excel（COM）或 LibreOffice |
 | `pptx` `ppt` | `pdf` | Microsoft PowerPoint（COM）或 LibreOffice |
-| `pdf` | `docx`（Word）、`txt`、`png` / `jpg`（逐页图片打包为 ZIP） | Word、pypdf、pypdfium2 |
+| `pdf` | `docx`（Word）、`docx · OCR`（扫描件）、`txt`、`png` / `jpg`（逐页图片打包为 ZIP） | Word、Tesseract、python-docx、pypdf、pypdfium2 |
 | `docx` `odt` `rtf` `epub` `md` `html` `txt` | `md` `html` `txt` `docx` `odt` `rtf` `epub`（除源格式外） | Pandoc |
 | `epub` `mobi` `azw3` | `epub` `mobi` `azw3` `pdf` `txt` | Calibre |
 
@@ -132,7 +133,7 @@ vendor/              FFmpeg 可执行文件（下载所得，不进入 git）
 
 ## 已知限制
 
-- PDF → Word 使用 Word 的 PDF 重排功能：有文字层的数字化 PDF 效果好；扫描版 PDF 没有文字层，转 Word 只能得到页面图片（PDF → TXT 会自动走 OCR）。
+- PDF → Word 使用 Word 的 PDF 重排功能。扫描版 PDF 可以选择 `DOCX · OCR` 目标，得到可编辑的文字版 Word；页面排版和图片不会还原。
 - PDF → Word 仍然需要本机安装 Microsoft Word；LibreOffice 无法把 PDF 还原成可编辑的 Word。其它文档转换在全内置版里不需要额外安装。
 - 精简版的 Office 格式需要 Microsoft Office 或 LibreOffice，Markdown 转换需要 Pandoc，OCR 需要 Tesseract，电子书需要 Calibre。
 - 不支持加密压缩包。

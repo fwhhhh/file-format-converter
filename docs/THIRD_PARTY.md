@@ -16,6 +16,8 @@ This project bundles or depends on the following open-source components.
 | pywin32 | PSF-2.0 | Microsoft Office automation (COM) |
 | pypdfium2 | BSD-3-Clause AND Apache-2.0 | PDF page rendering |
 | pypdf | BSD-3-Clause | PDF text extraction |
+| python-docx | MIT | OCR Word document output |
+| lxml | BSD-3-Clause | XML handling used by python-docx |
 | Pandoc (external in slim, bundled in full) | GPL-2.0-or-later | Document conversion |
 | Tesseract OCR (external in slim, bundled in full) | Apache-2.0 | OCR |
 | LibreOffice (external in slim, bundled in full) | MPL-2.0 | Office document fallback |

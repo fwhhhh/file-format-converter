@@ -35,7 +35,7 @@ from ..core import detect
 from ..core.formats import is_supported_ext
 from ..core.jobs import ConvertJob, JobSignals
 from ..core.models import Entry
-from ..core.utils import resource_path, stem_for, unique_path
+from ..core.utils import resource_path, sanitize_filename_suffix, stem_for, unique_path
 from ..engines import engine_for, probe_metadata, status_entries, targets_for
 from ..i18n import tr, trn
 from ..settings import Settings
@@ -476,6 +476,7 @@ class MainWindow(QMainWindow):
                 continue
             folder = custom_folder if custom_folder is not None else entry.path.parent
             stem = stem_for(entry.path, entry.ext)
+            stem += sanitize_filename_suffix(self.settings.filename_suffix)
             destinations: dict[str, Path] = {}
             prepared = []
             for fmt in ordered:
