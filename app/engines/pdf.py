@@ -81,22 +81,82 @@ class PdfEngine(Engine):
             if total == 0:
                 raise EngineError("This PDF has no pages")
             parts: list[str] = []
-            for index, page in enumerate(pages):
+            for page in pages:
                 text = page.extract_text() or ""
                 if text.strip():
                     parts.append(text.strip())
-                if progress is not None:
-                    progress(0.1 + 0.85 * (index + 1) / total)
             result = "\n\n".join(parts).strip()
             if not result:
+                from .ocr import available as ocr_available
+
+                if ocr_available():
+                    self._ocr_pages(src, dst, progress)
+                    return
                 raise EngineError(
-                    "No text layer found in this PDF (it may be a scanned document)"
+                    "No text layer found in this PDF (scanned document). "
+                    "Install Tesseract OCR to read scanned PDFs."
                 )
             dst.write_text(result + "\n", encoding="utf-8")
         except EngineError:
             raise
         except Exception as exc:  # noqa: BLE001
             raise EngineError(str(exc)) from exc
+        if progress is not None:
+            progress(1.0)
+
+    def _ocr_pages(self, src: Path, dst: Path, progress: Progress | None) -> None:
+        try:
+            import pypdfium2 as pdfium
+
+            from .ocr import ocr_image
+        except Exception as exc:  # noqa: BLE001
+            raise EngineError("PDF OCR requires pypdfium2 and Tesseract") from exc
+        temporary = Path(tempfile.mkdtemp(prefix="ffc_ocr_"))
+        document = None
+        try:
+            document = pdfium.PdfDocument(str(src))
+            total = len(document)
+            if total == 0:
+                raise EngineError("This PDF has no pages")
+            parts: list[str] = []
+            for index in range(total):
+                page = document[index]
+                try:
+                    bitmap = page.render(scale=2.5)
+                    try:
+                        image = bitmap.to_pil()
+                    finally:
+                        try:
+                            bitmap.close()
+                        except Exception:
+                            pass
+                finally:
+                    try:
+                        page.close()
+                    except Exception:
+                        pass
+                image_path = temporary / f"page_{index + 1:03d}.png"
+                image.save(image_path, format="PNG")
+                text = ocr_image(image_path)
+                if text.strip():
+                    parts.append(text.strip())
+                if progress is not None:
+                    progress(0.1 + 0.85 * (index + 1) / total)
+            result = "\n\n".join(parts).strip()
+            if not result:
+                raise EngineError("OCR found no text in this PDF")
+            dst.write_text(result + "\n", encoding="utf-8")
+        except EngineError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise EngineError(str(exc)) from exc
+        finally:
+            if document is not None:
+                try:
+                    document.close()
+                except Exception:
+                    pass
+            shutil.rmtree(temporary, ignore_errors=True)
         if progress is not None:
             progress(1.0)
 

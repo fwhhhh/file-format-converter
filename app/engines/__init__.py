@@ -10,7 +10,9 @@ from .base import Engine, EngineError
 from .external import EXTERNAL_TOOLS
 from .image import ImageEngine
 from .media import MediaEngine
+from .ocr import available as ocr_available
 from .office import OfficeEngine, office_apps
+from .pandoc import PandocEngine
 from .pdf import PdfEngine
 from .table import TableEngine
 from .text import TextEngine
@@ -19,6 +21,7 @@ _IMAGE_ENGINE = ImageEngine()
 _MEDIA_ENGINE = MediaEngine()
 _PDF_ENGINE = PdfEngine()
 _OFFICE_ENGINE = OfficeEngine()
+_PANDOC_ENGINE = PandocEngine()
 _ENGINES: list[Engine] = [
     _OFFICE_ENGINE,
     _PDF_ENGINE,
@@ -26,6 +29,7 @@ _ENGINES: list[Engine] = [
     _MEDIA_ENGINE,
     ArchiveEngine(),
     TextEngine(),
+    _PANDOC_ENGINE,
     TableEngine(),
 ]
 
@@ -83,7 +87,15 @@ def status_entries() -> list[tuple[str, str, bool]]:
     result.append(("word", "engine_word", apps.get("word", False)))
     result.append(("excel", "engine_excel", apps.get("excel", False)))
     result.append(("powerpoint", "engine_powerpoint", apps.get("powerpoint", False)))
+    try:
+        ocr_ready = ocr_available()
+    except Exception:
+        ocr_ready = False
+    result.append(("ocr", "engine_ocr", ocr_ready))
+    known = {key for key, _label, _available in result}
     for tool in EXTERNAL_TOOLS:
+        if tool.key in known:
+            continue
         result.append((tool.key, tool.label_key, tool.available()))
     return result
 

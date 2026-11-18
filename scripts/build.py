@@ -107,14 +107,18 @@ def main() -> int:
 
     stage = Path(tempfile.mkdtemp(prefix="ffc_build_"))
     try:
-        ffmpeg_dir = root / "vendor" / "ffmpeg"
-        if ffmpeg_dir.exists():
-            stage_vendor = stage / "vendor"
-            shutil.copytree(
-                ffmpeg_dir,
-                stage_vendor / "ffmpeg",
-                ignore=shutil.ignore_patterns("*.zip"),
-            )
+        stage_vendor = stage / "vendor"
+        copied_vendor = False
+        for name in ("ffmpeg", "tessdata"):
+            source = root / "vendor" / name
+            if source.exists():
+                shutil.copytree(
+                    source,
+                    stage_vendor / name,
+                    ignore=shutil.ignore_patterns("*.zip"),
+                )
+                copied_vendor = True
+        if copied_vendor:
             arguments += ["--add-data", f"{stage_vendor}{separator}vendor"]
         arguments.append(str(root / "run.py"))
         PyInstaller.__main__.run(arguments)

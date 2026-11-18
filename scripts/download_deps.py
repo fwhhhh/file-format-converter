@@ -26,6 +26,29 @@ DEFAULT_URL = (
 WANTED_SUFFIXES = (".exe", ".dll")
 WANTED_LICENSES = {"LICENSE.txt", "LICENSE"}
 
+TESSDATA_URL = "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/{name}.traineddata"
+TESSDATA_LANGUAGES = ("chi_sim", "eng")
+
+
+def download_tessdata(root: Path) -> None:
+    """Fetch the OCR language data bundled with release packages."""
+    target = root / "vendor" / "tessdata"
+    target.mkdir(parents=True, exist_ok=True)
+    for name in TESSDATA_LANGUAGES:
+        path = target / f"{name}.traineddata"
+        if path.exists():
+            continue
+        url = TESSDATA_URL.format(name=name)
+        print(f"Downloading {url}")
+        try:
+            urllib.request.urlretrieve(url, path)
+        except Exception as exc:  # noqa: BLE001
+            print(f"WARNING: could not download {name}: {exc}")
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
 
 def download(url: str, destination: Path) -> None:
     print(f"Downloading {url}")
@@ -88,6 +111,8 @@ def main() -> int:
         archive_path = Path(temp) / "ffmpeg.zip"
         download(args.url, archive_path)
         extract(archive_path, root)
+
+    download_tessdata(root)
 
     if not target.exists():
         print("ffmpeg.exe was not found in the archive")

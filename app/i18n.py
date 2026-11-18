@@ -124,7 +124,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "Microsoft PowerPoint（Office）",
         "en": "Microsoft PowerPoint (Office)",
     },
-    "engine_pandoc": {"zh": "文档转换（Pandoc，可选）", "en": "Documents (Pandoc, optional)"},
+    "engine_pandoc": {"zh": "文档互转（Pandoc）", "en": "Documents (Pandoc)"},
+    "engine_ocr": {"zh": "OCR 扫描识别（Tesseract）", "en": "OCR (Tesseract)"},
     "engine_libreoffice": {
         "zh": "办公文档（LibreOffice，可选）",
         "en": "Office documents (LibreOffice, optional)",
@@ -135,8 +136,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Not detected. Install it and restart this app to enable it.",
     },
     "engine_future_note": {
-        "zh": "Pandoc、LibreOffice、Calibre 的转换功能将在下一版本启用，当前仅做状态检测。",
-        "en": "Pandoc, LibreOffice and Calibre conversions arrive in a later release; "
+        "zh": "LibreOffice、Calibre 的转换功能将在后续版本启用，当前仅做状态检测。",
+        "en": "LibreOffice and Calibre conversions arrive in a later release; "
               "for now they are only detected.",
     },
     "download": {"zh": "下载安装", "en": "Download"},

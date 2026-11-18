@@ -95,7 +95,9 @@ def run_selftest() -> int:
 
         from .core import detect
         from .engines import engine_for
+        from .engines.ocr import available as ocr_available
         from .engines.office import find_office_exe
+        from .engines.pandoc import find_pandoc
         from .engines.pdf import PdfEngine
 
         for source, target in cases:
@@ -195,6 +197,57 @@ def run_selftest() -> int:
                 lines.append(f"FAIL xlsx -> pdf: {exc}")
         else:
             lines.append("SKIP Microsoft Excel not installed")
+
+        if find_pandoc() is not None:
+            try:
+                md_path = temp_root / "sample_pandoc.md"
+                md_path.write_text("# 标题\n\nHello **world**\n", encoding="utf-8")
+                docx_path = temp_root / "sample_pandoc.docx"
+                engine_for("md", "docx").convert(
+                    md_path,
+                    docx_path,
+                    {"target_format": "docx", "source_format": "md"},
+                )
+                back_md = temp_root / "sample_pandoc_back.md"
+                engine_for("docx", "md").convert(
+                    docx_path,
+                    back_md,
+                    {"target_format": "md", "source_format": "docx"},
+                )
+                text = back_md.read_text(encoding="utf-8")
+                if "标题" not in text:
+                    raise RuntimeError("Pandoc lost the Chinese text")
+                lines.append(f"OK   sample_pandoc.md -> docx -> md ({len(text)} chars)")
+            except Exception as exc:  # noqa: BLE001
+                lines.append(f"FAIL Pandoc pipeline: {exc}")
+        else:
+            lines.append("SKIP Pandoc not installed")
+
+        if ocr_available():
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+
+                scan = Image.new("RGB", (900, 260), "white")
+                draw = ImageDraw.Draw(scan)
+                try:
+                    font = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 84)
+                except OSError:
+                    font = ImageFont.load_default()
+                draw.text((40, 70), "SCAN TEST 123", fill="black", font=font)
+                scan_png = temp_root / "scan.png"
+                scan.save(scan_png)
+                scan_pdf = temp_root / "scan.pdf"
+                engine_for("png", "pdf").convert(scan_png, scan_pdf, {})
+                scan_txt = temp_root / "scan.txt"
+                PdfEngine().convert(scan_pdf, scan_txt, {"target_format": "txt"})
+                text = scan_txt.read_text(encoding="utf-8")
+                if "SCAN" not in text and "123" not in text:
+                    raise RuntimeError("OCR did not recognize the sample text")
+                lines.append(f"OK   scanned pdf -> ocr txt ({len(text)} chars)")
+            except Exception as exc:  # noqa: BLE001
+                lines.append(f"FAIL OCR pipeline: {exc}")
+        else:
+            lines.append("SKIP Tesseract OCR not available")
     except Exception as exc:  # noqa: BLE001
         lines.append(f"FAIL setup: {exc}")
     finally:

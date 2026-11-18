@@ -41,6 +41,7 @@ _INSTALL_URLS = {
     "word": _OFFICE_URL,
     "excel": _OFFICE_URL,
     "powerpoint": _OFFICE_URL,
+    "ocr": "https://github.com/UB-Mannheim/tesseract/wiki",
 }
 
 

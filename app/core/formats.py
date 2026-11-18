@@ -100,12 +100,17 @@ def default_target(ext: str, targets: list[str]) -> str:
     if group == "image" and ext == "gif" and "webp" in targets:
         return "webp"
     if group == "document":
-        for candidate in ("docx", "pdf", "txt", "png", "jpg", "xlsx"):
+        for candidate in ("pdf", "docx", "txt", "png", "jpg", "xlsx"):
             if candidate in targets:
                 return candidate
         return targets[0]
     if group == "table":
         for candidate in ("pdf", "xlsx", "csv"):
+            if candidate in targets:
+                return candidate
+        return targets[0]
+    if group == "ebook":
+        for candidate in ("epub", "docx", "html", "md", "txt"):
             if candidate in targets:
                 return candidate
         return targets[0]
