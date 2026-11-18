@@ -110,7 +110,11 @@ def default_target(ext: str, targets: list[str]) -> str:
                 return candidate
         return targets[0]
     if group == "ebook":
-        for candidate in ("epub", "docx", "html", "md", "txt"):
+        if ext == "epub":
+            preference = ["pdf", "mobi", "azw3", "docx", "html", "md", "txt"]
+        else:
+            preference = ["epub", "pdf", "docx", "html", "md", "txt"]
+        for candidate in preference:
             if candidate in targets:
                 return candidate
         return targets[0]

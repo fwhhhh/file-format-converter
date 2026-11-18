@@ -248,6 +248,47 @@ def run_selftest() -> int:
                 lines.append(f"FAIL OCR pipeline: {exc}")
         else:
             lines.append("SKIP Tesseract OCR not available")
+
+        from .engines.calibre import CalibreEngine, find_ebook_convert
+        from .engines.libreoffice import LibreOfficeEngine, find_soffice
+
+        if find_soffice() is not None:
+            try:
+                lo_docx = temp_root / "lo_sample.docx"
+                _write_minimal_docx(lo_docx)
+                lo_pdf = temp_root / "lo_sample.pdf"
+                LibreOfficeEngine().convert(
+                    lo_docx,
+                    lo_pdf,
+                    {"target_format": "pdf", "source_format": "docx"},
+                )
+                lines.append(f"OK   LibreOffice docx -> pdf ({lo_pdf.stat().st_size} bytes)")
+            except Exception as exc:  # noqa: BLE001
+                lines.append(f"FAIL LibreOffice pipeline: {exc}")
+        else:
+            lines.append("SKIP LibreOffice not installed")
+
+        if find_ebook_convert() is not None and find_pandoc() is not None:
+            try:
+                book_md = temp_root / "book.md"
+                book_md.write_text("# Chapter\n\nHello e-book.\n", encoding="utf-8")
+                book_epub = temp_root / "book.epub"
+                engine_for("md", "epub").convert(
+                    book_md,
+                    book_epub,
+                    {"target_format": "epub", "source_format": "md"},
+                )
+                book_mobi = temp_root / "book.mobi"
+                CalibreEngine().convert(
+                    book_epub,
+                    book_mobi,
+                    {"target_format": "mobi", "source_format": "epub"},
+                )
+                lines.append(f"OK   Calibre epub -> mobi ({book_mobi.stat().st_size} bytes)")
+            except Exception as exc:  # noqa: BLE001
+                lines.append(f"FAIL Calibre pipeline: {exc}")
+        else:
+            lines.append("SKIP Calibre not installed")
     except Exception as exc:  # noqa: BLE001
         lines.append(f"FAIL setup: {exc}")
     finally:

@@ -20,7 +20,10 @@ def find_tesseract() -> str | None:
     if "exe" in _CACHE:
         return _CACHE["exe"]  # type: ignore[return-value]
     exe_name = "tesseract.exe" if sys.platform == "win32" else "tesseract"
-    found = shutil.which("tesseract")
+    bundled = project_root() / "vendor" / "tesseract" / exe_name
+    found: str | None = str(bundled) if bundled.exists() else None
+    if found is None:
+        found = shutil.which("tesseract")
     if found is None:
         roots = [
             os.environ.get("LOCALAPPDATA"),

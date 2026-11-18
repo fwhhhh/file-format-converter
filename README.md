@@ -18,9 +18,10 @@ in one run.
   correctly
 - Results show the actual output file icon, size and an "open folder" button
 - Word, Excel and PowerPoint documents convert through the installed Microsoft
-  Office; PDF files can be turned into Word, text or page images
-- Pandoc handles Markdown / HTML / text ↔ docx / odt / rtf / epub, and Tesseract
-  OCR reads scanned PDFs into text
+  Office, with LibreOffice as a free fallback; PDF files can be turned into Word,
+  text or page images
+- Pandoc handles Markdown / HTML / text ↔ docx / odt / rtf / epub, Tesseract OCR
+  reads scanned PDFs into text, and Calibre converts e-books
 - Batch conversion with one overall progress bar; a failed file does not stop
   the others
 - Chinese / English UI, remembered between runs
@@ -39,16 +40,17 @@ in one run.
 | `zip` `7z` `tar` `tar.gz` `tar.bz2` `tar.xz` | `zip` `7z` `tar` `tar.gz` `tar.xz` | stdlib + py7zr |
 | `txt` `md` `html` | each other | Markdown, BeautifulSoup, markdownify |
 | `csv` `xlsx` | each other | openpyxl |
-| `docx` `doc` `odt` `rtf` | `pdf` | Microsoft Word (COM) |
-| `xlsx` `xls` | `pdf`; `xls` also to `xlsx` | Microsoft Excel (COM) |
-| `pptx` `ppt` | `pdf` | Microsoft PowerPoint (COM) |
+| `docx` `doc` `odt` `rtf` | `pdf` | Microsoft Word (COM) or LibreOffice |
+| `xlsx` `xls` | `pdf`; `xls` also to `xlsx` | Microsoft Excel (COM) or LibreOffice |
+| `pptx` `ppt` | `pdf` | Microsoft PowerPoint (COM) or LibreOffice |
 | `pdf` | `docx` (Word), `txt`, `png` / `jpg` (a ZIP of page images) | Word, pypdf, pypdfium2 |
 | `docx` `odt` `rtf` `epub` `md` `html` `txt` | `md` `html` `txt` `docx` `odt` `rtf` `epub` (except the source format) | Pandoc |
+| `epub` `mobi` `azw3` | `epub` `mobi` `azw3` `pdf` `txt` | Calibre |
 
-Office conversions use the copy of Microsoft Office that is already installed
-on the machine; Office is never bundled. PDF page images are rendered at about
-144 DPI and delivered as one ZIP per PDF. Office-based targets are Windows-only
-and are hidden on macOS/Linux.
+Office conversions prefer the installed Microsoft Office (Word/Excel/PowerPoint)
+and fall back to LibreOffice when Office is not available. Neither suite is
+bundled in the slim build; the full build bundles LibreOffice. PDF page images
+are rendered at about 144 DPI and delivered as one ZIP per PDF.
 
 PDF → TXT automatically falls back to Tesseract OCR when a PDF has no text layer
 (a scanned document). Chinese and English OCR data is bundled with the app; the
@@ -60,11 +62,17 @@ several formats at once; each format is an independent job.
 ## Download
 
 Grab the latest release, unzip it anywhere and run
-`FileFormatConverter.exe`. The release package includes the FFmpeg LGPL build and
-Chinese/English OCR data, so media conversion and OCR work without extra data
-files. Word/Excel/PowerPoint formats require Microsoft Office on that computer;
-Pandoc-based formats require Pandoc; OCR requires Tesseract. Missing tools are
-greyed out automatically.
+`FileFormatConverter.exe`. Two packages are published:
+
+- **Slim** (~134 MB): FFmpeg and OCR language data bundled; Microsoft Office,
+  LibreOffice, Pandoc, Tesseract and Calibre are detected if installed.
+- **Full** (~2.4 GB unpacked; the bundled document tools alone are about
+  2.1 GB): also bundles LibreOffice, Pandoc, Tesseract and Calibre, so documents,
+  OCR and e-books work on a fresh Windows computer without installing anything
+  else. Microsoft Office itself cannot be bundled (licensing); PDF → Word still
+  needs Microsoft Word.
+
+Missing tools are greyed out automatically.
 
 ## Run from source
 
@@ -89,26 +97,33 @@ On macOS or Linux, install ffmpeg with `brew install ffmpeg` or
 
 ### Optional document tools
 
-The app calls these tools when they are installed; it never bundles them.
+The app calls these tools when they are installed; the full build bundles them.
 
 ```bash
 winget install JohnMacFarlane.Pandoc      # docx/odt/epub ↔ md/html/txt
 winget install UB-Mannheim.TesseractOCR   # OCR for scanned PDFs
+winget install TheDocumentFoundation.LibreOffice   # free Office fallback
+winget install calibre.calibre            # epub / mobi / azw3
 ```
 
-On macOS/Linux use `brew install pandoc tesseract` or the equivalent package.
-The Chinese and English OCR language data is already bundled in the project.
+On macOS/Linux use `brew install pandoc tesseract libreoffice calibre` or the
+equivalent package. The Chinese and English OCR language data is already
+bundled in the project.
 
 ## Build a portable package
 
 ```bash
 python scripts/make_icon.py
-python scripts/build.py
+python scripts/build.py            # slim build
+python scripts/build.py --full     # bundles LibreOffice, Pandoc, Tesseract, Calibre
 ```
 
-The result is `dist/FileFormatConverter/`. Zip that folder and it can be copied
-to another Windows computer and started directly. The build script bundles
-`vendor/ffmpeg`, the license notices and the application icon.
+The slim result is `dist/FileFormatConverter/`; the full result is
+`dist/FileFormatConverter-Full/`. Zip either folder and it can be copied to
+another Windows computer and started directly. The build script bundles
+`vendor/ffmpeg`, the OCR language data, the license notices and the application
+icon; the full build additionally bundles the document tools. Building the full
+package requires those tools to be installed on the build machine.
 
 ## Test
 
@@ -136,7 +151,7 @@ app/
   i18n.py            Chinese / English strings
   settings.py        QSettings wrapper
   core/              detection, models, job scheduling, helpers
-  engines/           office / pdf / pandoc / image / media / archive / text / table
+  engines/           office / libreoffice / pdf / pandoc / calibre / ocr / image / media / archive / text / table
   ui/                main window, file cards, dialogs, theme
 scripts/             dependency download, icon, screenshots
 tests/               pytest suite
@@ -147,12 +162,10 @@ vendor/              FFmpeg binaries (downloaded, not tracked by git)
 
 - PDF → Word uses Word's PDF reflow. Text-based PDFs convert well; scanned PDFs
   have no text layer and are converted as page images (PDF → TXT does use OCR).
-- Office conversions require Microsoft Office installed on the machine. The app
-  never bundles Office. LibreOffice as a free fallback is planned.
-- Pandoc is required for Markdown/HTML/text ↔ docx/odt/rtf/epub conversions;
-  Tesseract is required for OCR.
-- `epub`/`odt`/`rtf` are supported through Pandoc; `mobi`/`azw3` and Calibre
-  conversions are not wired up yet.
+- PDF → Word still requires Microsoft Word; LibreOffice cannot reconstruct an
+  editable Word file from a PDF. Everything else works with the full build.
+- The slim build requires Microsoft Office or LibreOffice for Office formats,
+  Pandoc for Markdown conversions, Tesseract for OCR and Calibre for e-books.
 - Password-protected archives are rejected.
 - GIF output is a re-encoded animation; expect a larger file than a video.
 - XLSX to CSV converts the active worksheet only.

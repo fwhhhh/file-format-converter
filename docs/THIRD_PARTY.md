@@ -16,8 +16,10 @@ This project bundles or depends on the following open-source components.
 | pywin32 | PSF-2.0 | Microsoft Office automation (COM) |
 | pypdfium2 | BSD-3-Clause AND Apache-2.0 | PDF page rendering |
 | pypdf | BSD-3-Clause | PDF text extraction |
-| Pandoc (external) | GPL-2.0-or-later | Document conversion through a user-installed Pandoc |
-| Tesseract OCR (external) | Apache-2.0 | OCR through a user-installed Tesseract |
+| Pandoc (external in slim, bundled in full) | GPL-2.0-or-later | Document conversion |
+| Tesseract OCR (external in slim, bundled in full) | Apache-2.0 | OCR |
+| LibreOffice (external in slim, bundled in full) | MPL-2.0 | Office document fallback |
+| Calibre (external in slim, bundled in full) | GPL-3.0 | E-book conversion |
 | tessdata_fast data | Apache-2.0 | Bundled Chinese/English OCR language data |
 
 Notes:
@@ -29,6 +31,11 @@ Notes:
 * Microsoft Office is **not redistributed**. Word, Excel and PowerPoint
   conversions only use the copy that is already installed on the user's
   computer, through COM automation.
-* Pandoc and Tesseract are **not redistributed** either; the app invokes the
-  copies installed by the user. Only the Apache-2.0 OCR language data
-  (`tessdata_fast`) is bundled.
+* The **full** build redistributes Pandoc (GPL-2.0-or-later), Tesseract
+  (Apache-2.0), LibreOffice (MPL-2.0) and Calibre (GPL-3.0) as separate
+  executables. Their source code and license texts are available from
+  <https://pandoc.org>, <https://github.com/tesseract-ocr/tesseract>,
+  <https://www.libreoffice.org/about-us/licenses/> and
+  <https://calibre-ebook.com/about>. The slim build only invokes copies that
+  the user installed.
+* The Apache-2.0 OCR language data (`tessdata_fast`) is bundled in both builds.

@@ -8,6 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from ..core.utils import project_root
 from .base import Engine, EngineError, Progress
 from .external import EXTERNAL_TOOLS
 
@@ -39,7 +40,10 @@ _CACHE: dict[str, str | None] = {}
 def find_pandoc() -> str | None:
     if "pandoc" in _CACHE:
         return _CACHE["pandoc"]
-    found = shutil.which("pandoc")
+    bundled = project_root() / "vendor" / "pandoc" / "pandoc.exe"
+    found: str | None = str(bundled) if bundled.exists() else None
+    if found is None:
+        found = shutil.which("pandoc")
     if found is None:
         for tool in EXTERNAL_TOOLS:
             if tool.key == "pandoc":

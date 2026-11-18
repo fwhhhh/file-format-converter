@@ -7,8 +7,10 @@ from pathlib import Path
 from ..core.formats import group_of
 from .archive import ArchiveEngine
 from .base import Engine, EngineError
+from .calibre import CalibreEngine
 from .external import EXTERNAL_TOOLS
 from .image import ImageEngine
+from .libreoffice import LibreOfficeEngine
 from .media import MediaEngine
 from .ocr import available as ocr_available
 from .office import OfficeEngine, office_apps
@@ -21,15 +23,19 @@ _IMAGE_ENGINE = ImageEngine()
 _MEDIA_ENGINE = MediaEngine()
 _PDF_ENGINE = PdfEngine()
 _OFFICE_ENGINE = OfficeEngine()
+_LIBREOFFICE_ENGINE = LibreOfficeEngine()
 _PANDOC_ENGINE = PandocEngine()
+_CALIBRE_ENGINE = CalibreEngine()
 _ENGINES: list[Engine] = [
     _OFFICE_ENGINE,
+    _LIBREOFFICE_ENGINE,
     _PDF_ENGINE,
     _IMAGE_ENGINE,
     _MEDIA_ENGINE,
     ArchiveEngine(),
     TextEngine(),
     _PANDOC_ENGINE,
+    _CALIBRE_ENGINE,
     TableEngine(),
 ]
 

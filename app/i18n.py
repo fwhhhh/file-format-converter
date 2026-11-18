@@ -136,9 +136,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Not detected. Install it and restart this app to enable it.",
     },
     "engine_future_note": {
-        "zh": "LibreOffice、Calibre 的转换功能将在后续版本启用，当前仅做状态检测。",
-        "en": "LibreOffice and Calibre conversions arrive in a later release; "
-              "for now they are only detected.",
+        "zh": "可选引擎未安装时会灰显。全内置版已包含 Pandoc、Tesseract、LibreOffice 与 Calibre。",
+        "en": "Missing optional engines are greyed out. The full build bundles Pandoc, "
+              "Tesseract, LibreOffice and Calibre.",
     },
     "download": {"zh": "下载安装", "en": "Download"},
     "engine_pill": {
