@@ -71,9 +71,9 @@ several formats at once; each format is an independent job.
 Grab the latest release, unzip it anywhere and run
 `FileFormatConverter.exe`. Two packages are published:
 
-- **Slim** (~134 MB): FFmpeg and OCR language data bundled; Microsoft Office,
+- **Slim** (~138 MB): FFmpeg and OCR language data bundled; Microsoft Office,
   LibreOffice, Pandoc, Tesseract and Calibre are detected if installed.
-- **Full** (~2.4 GB unpacked, ~910 MB download; the bundled document tools
+- **Full** (~2.4 GB unpacked, ~914 MB download; the bundled document tools
   alone are about 2.1 GB): also bundles LibreOffice, Pandoc, Tesseract and
   Calibre, so documents, OCR and e-books work on a fresh Windows computer
   without installing anything else. Microsoft Office itself cannot be bundled
