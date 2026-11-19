@@ -170,11 +170,12 @@ def ocr_layout(image_path: Path) -> list[dict]:
         lang,
         "--psm",
         "3",
+        "-c",
+        "tessedit_create_tsv=1",
     ]
     directory = bundled_tessdata()
     if directory is not None:
         command.extend(["--tessdata-dir", str(directory)])
-    command.append("tsv")
     try:
         completed = subprocess.run(
             command,
