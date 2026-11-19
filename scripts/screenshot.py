@@ -41,6 +41,7 @@ class DummySettings:
     custom_output_dir = ""
     pdf_dpi = 144
     filename_suffix = ""
+    filename_template = "{name}"
 
 
 def create_samples(folder: Path) -> list[str]:

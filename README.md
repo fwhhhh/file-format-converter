@@ -21,9 +21,10 @@ in one run.
   Office, with LibreOffice as a free fallback; PDF files can be turned into Word,
   text or page images
 - Pandoc handles Markdown / HTML / text ↔ docx / odt / rtf / epub, Tesseract OCR
-  reads scanned PDFs into text or an editable OCR Word document, and Calibre
-  converts e-books
-- Optional filename suffix for converted files, set in Settings
+  reads scanned PDFs into text or an editable OCR Word document (page size,
+  paragraphs and approximate font sizes), and Calibre converts e-books
+- Output filename template (`{name}`, `{target}`, `{date}`, `{time}`) and suffix,
+  configurable in Settings
 - PDF toolbox: merge PDFs, split by page or every N pages, extract page ranges,
   combine images into a multi-page PDF, and export PDF pages as images with a
   chosen DPI and page range
@@ -168,7 +169,8 @@ vendor/              FFmpeg binaries (downloaded, not tracked by git)
 ## Known limitations
 
 - PDF → Word uses Word's PDF reflow. Scanned PDFs can use the `DOCX · OCR`
-  target to produce an editable text document; page layout and images are not
+  target to produce an editable text document with page size, paragraph
+  grouping and approximate font sizes; exact layout and images are not
   reconstructed.
 - PDF → Word still requires Microsoft Word; LibreOffice cannot reconstruct an
   editable Word file from a PDF. Everything else works with the full build.

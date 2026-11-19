@@ -96,3 +96,11 @@ def test_scanned_pdf_to_ocr_docx(tmp_path):
     with zipfile.ZipFile(target) as archive:
         xml = archive.read("word/document.xml").decode("utf-8")
     assert "SCAN" in xml or "123" in xml
+
+    from docx import Document
+
+    document = Document(str(target))
+    assert document.sections
+    assert document.sections[0].page_width > 0
+    paragraph_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+    assert "SCAN" in paragraph_text or "123" in paragraph_text

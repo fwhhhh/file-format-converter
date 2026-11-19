@@ -220,10 +220,11 @@ class PdfEngine(Engine):
         try:
             import pypdfium2 as pdfium
             from docx import Document
+            from docx.enum.section import WD_SECTION
             from docx.oxml.ns import qn
-            from docx.shared import Pt
+            from docx.shared import Inches, Pt
 
-            from .ocr import ocr_image
+            from .ocr import ocr_layout
         except Exception as exc:  # noqa: BLE001
             raise EngineError(
                 "PDF OCR to Word requires pypdfium2, Tesseract and python-docx"
@@ -236,12 +237,16 @@ class PdfEngine(Engine):
             total = len(pdf_document)
             if total == 0:
                 raise EngineError("This PDF has no pages")
-            page_texts: list[str] = []
+            pages: list[tuple[float, float, list[dict]]] = []
             for index in range(total):
                 if self._cancel_requested(options):
                     raise CancelledError()
                 page = pdf_document[index]
                 try:
+                    try:
+                        width_points, height_points = page.get_size()
+                    except Exception:
+                        width_points, height_points = 595.0, 842.0
                     bitmap = page.render(scale=2.5)
                     try:
                         image = bitmap.to_pil()
@@ -257,11 +262,18 @@ class PdfEngine(Engine):
                         pass
                 image_path = temporary / f"page_{index + 1:03d}.png"
                 image.save(image_path, format="PNG")
-                page_texts.append(ocr_image(image_path).strip())
+                pages.append(
+                    (
+                        float(width_points),
+                        float(height_points),
+                        ocr_layout(image_path),
+                    )
+                )
                 if progress is not None:
                     progress(0.1 + 0.85 * (index + 1) / total)
-            if not any(page_texts):
+            if not any(lines for _width, _height, lines in pages):
                 raise EngineError("OCR found no text in this PDF")
+
             word_document = Document()
             try:
                 style = word_document.styles["Normal"]
@@ -273,11 +285,49 @@ class PdfEngine(Engine):
                     pass
             except Exception:
                 pass
-            for index, page_text in enumerate(page_texts):
-                if index > 0:
-                    word_document.add_page_break()
-                for line in page_text.splitlines():
-                    word_document.add_paragraph(line)
+
+            for page_index, (width_points, height_points, lines) in enumerate(pages):
+                if page_index == 0:
+                    section = word_document.sections[0]
+                else:
+                    section = word_document.add_section(WD_SECTION.NEW_PAGE)
+                section.page_width = Inches(max(width_points, 72.0) / 72.0)
+                section.page_height = Inches(max(height_points, 72.0) / 72.0)
+                section.top_margin = Inches(0.5)
+                section.bottom_margin = Inches(0.5)
+                section.left_margin = Inches(0.5)
+                section.right_margin = Inches(0.5)
+
+                groups: dict[tuple[int, int], list[dict]] = {}
+                order: list[tuple[int, int]] = []
+                for line in lines:
+                    key = (int(line["block"]), int(line["par"]))
+                    if key not in groups:
+                        groups[key] = []
+                        order.append(key)
+                    groups[key].append(line)
+                for key in order:
+                    paragraph_lines = groups[key]
+                    paragraph = word_document.add_paragraph()
+                    try:
+                        paragraph.paragraph_format.space_after = Pt(4)
+                        left_points = paragraph_lines[0]["left"] * 72.0 / 180.0
+                        indent = max(0.0, min(144.0, left_points - 36.0))
+                        paragraph.paragraph_format.left_indent = Pt(indent)
+                    except Exception:
+                        pass
+                    for line_index, line in enumerate(paragraph_lines):
+                        run = paragraph.add_run(line["text"])
+                        try:
+                            run.font.name = "Microsoft YaHei"
+                            run.font.size = Pt(float(line["font_pt"]))
+                            run._element.rPr.rFonts.set(
+                                qn("w:eastAsia"), "Microsoft YaHei"
+                            )
+                        except Exception:
+                            pass
+                        if line_index != len(paragraph_lines) - 1:
+                            run.add_break()
             word_document.save(str(dst))
         except EngineError:
             raise

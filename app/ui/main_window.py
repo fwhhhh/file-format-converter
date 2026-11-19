@@ -35,7 +35,13 @@ from ..core import detect
 from ..core.formats import is_supported_ext
 from ..core.jobs import ConvertJob, JobSignals
 from ..core.models import Entry
-from ..core.utils import resource_path, sanitize_filename_suffix, stem_for, unique_path
+from ..core.utils import (
+    expand_filename_template,
+    resource_path,
+    sanitize_filename_suffix,
+    stem_for,
+    unique_path,
+)
 from ..engines import engine_for, probe_metadata, status_entries, targets_for
 from ..i18n import tr, trn
 from ..settings import Settings
@@ -475,11 +481,17 @@ class MainWindow(QMainWindow):
             if not ordered:
                 continue
             folder = custom_folder if custom_folder is not None else entry.path.parent
-            stem = stem_for(entry.path, entry.ext)
-            stem += sanitize_filename_suffix(self.settings.filename_suffix)
+            source_stem = stem_for(entry.path, entry.ext)
+            filename_suffix = sanitize_filename_suffix(self.settings.filename_suffix)
             destinations: dict[str, Path] = {}
             prepared = []
             for fmt in ordered:
+                stem = expand_filename_template(
+                    self.settings.filename_template,
+                    source_stem,
+                    fmt,
+                )
+                stem += filename_suffix
                 engine = engine_for(entry.ext, fmt)
                 if engine is not None:
                     artifact = engine.artifact_name(stem, fmt)

@@ -89,3 +89,11 @@ class Settings:
     @filename_suffix.setter
     def filename_suffix(self, value: str) -> None:
         self._settings.setValue("output/suffix", value)
+
+    @property
+    def filename_template(self) -> str:
+        return str(self._settings.value("output/template", "{name}"))
+
+    @filename_template.setter
+    def filename_template(self, value: str) -> None:
+        self._settings.setValue("output/template", value)

@@ -17,6 +17,7 @@ class DummySettings:
     custom_output_dir = ""
     pdf_dpi = 144
     filename_suffix = ""
+    filename_template = "{name}"
 
 
 def test_conversion_flow(qapp, tmp_path, monkeypatch):

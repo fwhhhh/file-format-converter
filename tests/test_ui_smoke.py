@@ -15,6 +15,7 @@ class DummySettings:
     custom_output_dir = ""
     pdf_dpi = 144
     filename_suffix = ""
+    filename_template = "{name}"
 
 
 def test_main_window_smoke(qapp, tmp_path):

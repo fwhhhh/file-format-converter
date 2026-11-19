@@ -5,12 +5,14 @@ import io
 import struct
 import wave
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 
 from app.core import detect, formats
 from app.core.utils import (
+    expand_filename_template,
     format_duration,
     human_size,
     sanitize_filename_suffix,
@@ -331,6 +333,20 @@ def test_sanitize_filename_suffix():
     assert sanitize_filename_suffix('a/b:c*?') == "abc"
     assert sanitize_filename_suffix("   ") == ""
     assert len(sanitize_filename_suffix("x" * 100)) == 32
+
+
+def test_expand_filename_template():
+    moment = datetime(2026, 11, 20, 9, 5, 3)
+    assert (
+        expand_filename_template("{date}_{name}_{target}", "photo", "png", moment)
+        == "20261120_photo_png"
+    )
+    assert (
+        expand_filename_template("{time}_{name}", "photo", "png", moment)
+        == "090503_photo"
+    )
+    assert expand_filename_template("", "photo", "png", moment) == "photo"
+    assert expand_filename_template("{unknown}", "photo", "png", moment) == "photo"
 
 
 def test_default_targets():

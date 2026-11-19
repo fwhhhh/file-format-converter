@@ -188,6 +188,10 @@ class SettingsDialog(QDialog):
         self.suffix_edit.setPlaceholderText(tr("filename_suffix_hint"))
         form.addRow(tr("filename_suffix"), self.suffix_edit)
 
+        self.template_edit = QLineEdit(settings.filename_template, self)
+        self.template_edit.setPlaceholderText(tr("filename_template_hint"))
+        form.addRow(tr("filename_template"), self.template_edit)
+
         form.addRow(self._make_buttons())
 
     def _make_buttons(self) -> QDialogButtonBox:
@@ -208,6 +212,7 @@ class SettingsDialog(QDialog):
         self.settings.theme = str(self.theme_combo.currentData())
         self.settings.pdf_dpi = int(self.pdf_dpi_combo.currentData())
         self.settings.filename_suffix = self.suffix_edit.text()
+        self.settings.filename_template = self.template_edit.text()
         super().accept()
 
 

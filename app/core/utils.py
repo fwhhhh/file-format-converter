@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 
@@ -44,12 +45,41 @@ def stem_for(path: Path, ext: str) -> str:
     return path.stem
 
 
-def sanitize_filename_suffix(text: str) -> str:
+def sanitize_filename_part(text: str, limit: int = 120) -> str:
     """Strip characters that are not valid in a Windows file name."""
     if not text:
         return ""
     cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", text)
-    return cleaned.strip().rstrip(".")[:32]
+    return cleaned.strip().rstrip(".")[:limit]
+
+
+def sanitize_filename_suffix(text: str) -> str:
+    return sanitize_filename_part(text, 32)
+
+
+def expand_filename_template(
+    template: str,
+    stem: str,
+    target: str,
+    now: datetime | None = None,
+) -> str:
+    """Expand {name}, {target}, {date}, {time} in the output name template."""
+    if not template or not template.strip():
+        return stem
+    moment = now or datetime.now()
+    values = {
+        "name": stem,
+        "target": target,
+        "ext": target,
+        "date": moment.strftime("%Y%m%d"),
+        "time": moment.strftime("%H%M%S"),
+    }
+    try:
+        result = template.format(**values)
+    except (KeyError, IndexError, ValueError):
+        return stem
+    cleaned = sanitize_filename_part(result, 120)
+    return cleaned or stem
 
 
 def unique_path(folder: Path, stem: str, ext: str, reserved: set[str]) -> Path:

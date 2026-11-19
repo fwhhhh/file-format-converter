@@ -164,6 +164,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "zh": "例如 _converted，留空则不添加",
         "en": "e.g. _converted; leave empty for none",
     },
+    "filename_template": {"zh": "输出文件名模板", "en": "Filename template"},
+    "filename_template_hint": {
+        "zh": "可用 {name} {target} {date} {time}，例如 {date}_{name}",
+        "en": "Use {name} {target} {date} {time}, e.g. {date}_{name}",
+    },
     "pdf_tools": {"zh": "PDF 工具", "en": "PDF tools"},
     "pdf_merge": {"zh": "合并 PDF", "en": "Merge PDFs"},
     "pdf_split": {"zh": "拆分 PDF", "en": "Split PDF"},
