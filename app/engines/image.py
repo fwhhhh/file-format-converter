@@ -13,6 +13,7 @@ _FORMAT_BY_EXT = {
     "jpg": "JPEG",
     "png": "PNG",
     "webp": "WEBP",
+    "avif": "AVIF",
     "bmp": "BMP",
     "gif": "GIF",
     "tiff": "TIFF",
@@ -47,7 +48,7 @@ class ImageEngine(Engine):
     label_key = "engine_image"
 
     READABLE = set(IMAGE_EXTS)
-    WRITABLE = ["png", "jpg", "webp", "bmp", "gif", "tiff", "ico", "pdf", "ppm"]
+    WRITABLE = ["png", "jpg", "webp", "avif", "bmp", "gif", "tiff", "ico", "pdf", "ppm"]
 
     def available(self) -> bool:
         try:
@@ -127,6 +128,9 @@ class ImageEngine(Engine):
             return
         if fmt in ("JPEG", "WEBP"):
             frame.save(dst, format=fmt, quality=quality, optimize=True)
+            return
+        if fmt == "AVIF":
+            frame.save(dst, format="AVIF", quality=quality)
             return
         if fmt == "PPM":
             frame.convert("RGB").save(dst, format="PPM")

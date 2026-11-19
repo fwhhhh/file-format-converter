@@ -55,11 +55,13 @@ def run_selftest() -> int:
     lines: list[str] = []
     cases: list[tuple[Path, str]] = []
     try:
-        from PIL import Image
+        from PIL import Image, features
 
         image_path = temp_root / "image.png"
         Image.new("RGB", (64, 48), "red").save(image_path)
         cases.extend([(image_path, "jpg"), (image_path, "webp"), (image_path, "pdf")])
+        if features.check("avif"):
+            cases.append((image_path, "avif"))
 
         md_path = temp_root / "note.md"
         md_path.write_text("# Title\n\nHello **world**\n", encoding="utf-8")

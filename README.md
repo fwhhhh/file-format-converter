@@ -45,7 +45,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 | Source | Targets | Engine |
 | --- | --- | --- |
-| `jpg` `png` `webp` `bmp` `gif` `tiff` `ico` `ppm` | each other, plus `pdf` (quality setting for JPG/WEBP) | Pillow + pillow-heif |
+| `jpg` `png` `webp` `avif` `bmp` `gif` `tiff` `ico` `ppm` | each other, plus `pdf` (quality setting for JPG/WEBP/AVIF) | Pillow + pillow-heif |
 | `heic` | any of the formats above | Pillow + pillow-heif |
 | `mp4` `mkv` `avi` `mov` `webm` `flv` `wmv` `m4v` `ts` `mpg` | `mp4` `mkv` `webm` `avi` `mov` `gif`, audio `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma`, and `srt` subtitles | FFmpeg |
 | `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma` | each other | FFmpeg |
@@ -85,6 +85,13 @@ Grab the latest release, unzip it anywhere and run
   Calibre, so documents, OCR and e-books work on a fresh Windows computer
   without installing anything else. Microsoft Office itself cannot be bundled
   (licensing); PDF → Word still needs Microsoft Word.
+
+Windows installers are also provided (`FileFormatConverter-*-Setup.exe`). They
+let you choose the install folder, create Start Menu entries and an optional
+desktop shortcut. The default install is per-user and needs no administrator
+rights; the installer can also run elevated to install under Program Files.
+Unsigned installers may show the Windows SmartScreen prompt; choose
+"More info → Run anyway".
 
 Missing tools are greyed out automatically.
 
@@ -138,6 +145,17 @@ another Windows computer and started directly. The build script bundles
 `vendor/ffmpeg`, the OCR language data, the license notices and the application
 icon; the full build additionally bundles the document tools. Building the full
 package requires those tools to be installed on the build machine.
+
+### Build installers
+
+```bash
+winget install JRSoftware.InnoSetup
+python scripts/build_installer.py --all
+```
+
+The generated setup files are written to `dist`. The installer supports a
+selectable folder, an optional desktop shortcut and both Chinese and English
+setup languages.
 
 ## Release automation
 

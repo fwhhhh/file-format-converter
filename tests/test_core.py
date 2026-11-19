@@ -111,6 +111,23 @@ def test_image_max_size(tmp_path):
         assert image.size == (200, 100)
 
 
+def test_avif_roundtrip(tmp_path):
+    from PIL import features
+
+    if not features.check("avif"):
+        pytest.skip("Pillow was built without AVIF")
+    Image = _pil()
+    source = tmp_path / "photo.png"
+    Image.new("RGB", (64, 48), "orange").save(source)
+    avif = tmp_path / "photo.avif"
+    ImageEngine().convert(source, avif, {"quality": 60})
+    assert detect.sniff_ext(avif) == "avif"
+    back = tmp_path / "back.png"
+    ImageEngine().convert(avif, back, {})
+    with Image.open(back) as image:
+        assert image.size == (64, 48)
+
+
 def test_animated_gif_to_webp(tmp_path):
     Image = _pil()
     frames = [Image.new("RGB", (20, 20), color) for color in ("red", "green", "blue")]

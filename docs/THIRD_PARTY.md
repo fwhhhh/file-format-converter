@@ -23,6 +23,8 @@ This project bundles or depends on the following open-source components.
 | LibreOffice (external in slim, bundled in full) | MPL-2.0 | Office document fallback |
 | Calibre (external in slim, bundled in full) | GPL-3.0 | E-book conversion |
 | tessdata_fast data | Apache-2.0 | Bundled Chinese/English OCR language data |
+| Inno Setup (build-time) | Inno Setup License | Windows installers |
+| ChineseSimplified.isl | Inno Setup License | Chinese installer UI |
 
 Notes:
 

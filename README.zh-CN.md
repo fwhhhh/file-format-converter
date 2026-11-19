@@ -30,7 +30,7 @@
 
 | 源格式 | 目标格式 | 引擎 |
 | --- | --- | --- |
-| `jpg` `png` `webp` `bmp` `gif` `tiff` `ico` `ppm` | 互相转换，另可转 `pdf`（JPG/WEBP 可调质量） | Pillow + pillow-heif |
+| `jpg` `png` `webp` `avif` `bmp` `gif` `tiff` `ico` `ppm` | 互相转换，另可转 `pdf`（JPG/WEBP/AVIF 可调质量） | Pillow + pillow-heif |
 | `heic` | 上述任意格式 | Pillow + pillow-heif |
 | `mp4` `mkv` `avi` `mov` `webm` `flv` `wmv` `m4v` `ts` `mpg` | `mp4` `mkv` `webm` `avi` `mov` `gif`，音频 `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma`，以及 `srt` 字幕 | FFmpeg |
 | `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma` | 互相转换 | FFmpeg |
@@ -56,6 +56,8 @@ PDF 没有文字层（扫描件）时，PDF → TXT 会自动改用 Tesseract OC
 
 - **精简版**（约 138MB）：内置 FFmpeg 和 OCR 语言数据；Microsoft Office、LibreOffice、Pandoc、Tesseract、Calibre 装了就能用，没装时灰显。
 - **全内置版**（解压约 2.4GB，下载约 914MB；其中文档工具本身约 2.1GB）：额外打包 LibreOffice、Pandoc、Tesseract 与 Calibre，换一台全新 Windows 电脑也能直接处理文档、OCR 和电子书。Microsoft Office 受授权限制不能打包；PDF → Word 仍需要本机安装 Word。
+
+另外提供 Windows 安装程序（`FileFormatConverter-*-Setup.exe`）：安装时可以选择目录、创建开始菜单项，并可勾选是否创建桌面快捷方式。默认按当前用户安装，不需要管理员权限；也支持以管理员身份安装到 Program Files。安装包未签名，Windows SmartScreen 可能提示，选择“更多信息 → 仍要运行”即可。
 
 缺少的引擎会自动灰显。
 
@@ -102,6 +104,15 @@ python scripts/build.py --full     # 内置 LibreOffice、Pandoc、Tesseract、C
 
 精简版输出在 `dist/FileFormatConverter/`，全内置版输出在
 `dist/FileFormatConverter-Full/`。整个文件夹压缩后拷到别的 Windows 电脑上即可直接运行。打包脚本会自动带上 `vendor/ffmpeg`、OCR 语言数据、许可证说明和应用图标；全内置版还会带上文档工具，因此打包机需要先装好这些工具。
+
+### 构建安装程序
+
+```bash
+winget install JRSoftware.InnoSetup
+python scripts/build_installer.py --all
+```
+
+安装包输出到 `dist`，支持选择安装目录、可选的桌面快捷方式，以及中英文安装界面。
 
 ## 发布自动化
 

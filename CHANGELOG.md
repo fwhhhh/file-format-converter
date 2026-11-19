@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1
+
+- Add AVIF image reading and writing
+- Add Windows installers for the slim and full packages: selectable install
+  folder, optional desktop shortcut, per-user install by default with an admin
+  override for Program Files
+
 ## 0.7.0
 
 - Extract subtitle tracks to SRT and choose the audio track used for video

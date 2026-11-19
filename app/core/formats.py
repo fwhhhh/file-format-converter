@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-IMAGE_EXTS = ["jpg", "png", "webp", "bmp", "gif", "tiff", "ico", "heic", "ppm"]
+IMAGE_EXTS = ["jpg", "png", "webp", "avif", "bmp", "gif", "tiff", "ico", "heic", "ppm"]
 VIDEO_EXTS = ["mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "ts", "mpg", "mpeg"]
 AUDIO_EXTS = ["mp3", "wav", "flac", "aac", "m4a", "ogg", "opus", "wma"]
 ARCHIVE_EXTS = ["zip", "7z", "tar", "tar.gz", "tar.bz2", "tar.xz", "gz", "bz2", "xz"]
