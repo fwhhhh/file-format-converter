@@ -133,6 +133,14 @@ another Windows computer and started directly. The build script bundles
 icon; the full build additionally bundles the document tools. Building the full
 package requires those tools to be installed on the build machine.
 
+## Release automation
+
+Pushing a tag such as `v0.6.1` runs the release workflow, builds the slim
+package on a Windows runner and creates a GitHub Release. The full package is
+built locally with `python scripts/build.py --full`, because it needs Microsoft
+Office / LibreOffice / Pandoc / Tesseract / Calibre installed on the build
+machine.
+
 ## Test
 
 ```bash

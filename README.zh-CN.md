@@ -100,6 +100,10 @@ python scripts/build.py --full     # 内置 LibreOffice、Pandoc、Tesseract、C
 精简版输出在 `dist/FileFormatConverter/`，全内置版输出在
 `dist/FileFormatConverter-Full/`。整个文件夹压缩后拷到别的 Windows 电脑上即可直接运行。打包脚本会自动带上 `vendor/ffmpeg`、OCR 语言数据、许可证说明和应用图标；全内置版还会带上文档工具，因此打包机需要先装好这些工具。
 
+## 发布自动化
+
+推送 `v0.6.1` 这类 tag 会触发 release 工作流，在 Windows runner 上自动构建精简版并创建 GitHub Release。全内置版需要在本地执行 `python scripts/build.py --full` 构建，因为它要求构建机已安装 Microsoft Office / LibreOffice / Pandoc / Tesseract / Calibre。
+
 ## 测试
 
 ```bash
