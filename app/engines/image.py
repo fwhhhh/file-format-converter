@@ -77,12 +77,17 @@ class ImageEngine(Engine):
         quality = int(options.get("quality", 85))
         quality = max(1, min(100, quality))
         try:
+            max_size = int(options.get("max_size", 0))
+        except (TypeError, ValueError):
+            max_size = 0
+        max_size = max(0, max_size)
+        try:
             with Image.open(src) as image:
                 animated = bool(getattr(image, "is_animated", False))
                 if fmt in ("GIF", "WEBP") and animated:
-                    self._save_animation(Image, image, dst, fmt, quality)
+                    self._save_animation(Image, image, dst, fmt, quality, max_size)
                 else:
-                    self._save_still(Image, image, dst, fmt, quality)
+                    self._save_still(Image, image, dst, fmt, quality, max_size)
         except EngineError:
             raise
         except Exception as exc:  # noqa: BLE001 - surface Pillow errors to the UI
@@ -90,10 +95,20 @@ class ImageEngine(Engine):
         if progress is not None:
             progress(1.0)
 
-    def _save_still(self, Image, image, dst: Path, fmt: str, quality: int) -> None:
+    def _save_still(
+        self,
+        Image,
+        image,
+        dst: Path,
+        fmt: str,
+        quality: int,
+        max_size: int,
+    ) -> None:
         frame = image
         if getattr(image, "is_animated", False):
             frame = image.copy()
+        if max_size > 0:
+            frame.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
         if fmt in ("JPEG", "BMP", "PDF") and frame.mode in ("RGBA", "LA", "P"):
             rgba = frame.convert("RGBA")
             background = Image.new("RGB", rgba.size, (255, 255, 255))
@@ -118,12 +133,23 @@ class ImageEngine(Engine):
             return
         frame.save(dst, format=fmt)
 
-    def _save_animation(self, Image, image, dst: Path, fmt: str, quality: int) -> None:
+    def _save_animation(
+        self,
+        Image,
+        image,
+        dst: Path,
+        fmt: str,
+        quality: int,
+        max_size: int,
+    ) -> None:
         from PIL import ImageSequence
 
         frames = []
         for frame in ImageSequence.Iterator(image):
-            frames.append(frame.convert("RGBA"))
+            converted = frame.convert("RGBA")
+            if max_size > 0:
+                converted.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+            frames.append(converted)
         if not frames:
             raise EngineError("No frames in image")
         duration = image.info.get("duration", 100)

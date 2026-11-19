@@ -42,6 +42,10 @@ class DummySettings:
     pdf_dpi = 144
     filename_suffix = ""
     filename_template = "{name}"
+    audio_track = 1
+    subtitle_track = 1
+    image_max_size = 0
+    video_height = 0
 
 
 def create_samples(folder: Path) -> list[str]:

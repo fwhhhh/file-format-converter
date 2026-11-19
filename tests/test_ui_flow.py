@@ -18,6 +18,10 @@ class DummySettings:
     pdf_dpi = 144
     filename_suffix = ""
     filename_template = "{name}"
+    audio_track = 1
+    subtitle_track = 1
+    image_max_size = 0
+    video_height = 0
 
 
 def test_conversion_flow(qapp, tmp_path, monkeypatch):

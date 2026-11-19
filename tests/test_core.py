@@ -101,6 +101,16 @@ def test_image_to_pdf(tmp_path):
     assert target.read_bytes().startswith(b"%PDF")
 
 
+def test_image_max_size(tmp_path):
+    Image = _pil()
+    source = tmp_path / "big.png"
+    Image.new("RGB", (800, 400), "blue").save(source)
+    target = tmp_path / "small.bmp"
+    ImageEngine().convert(source, target, {"max_size": 200})
+    with Image.open(target) as image:
+        assert image.size == (200, 100)
+
+
 def test_animated_gif_to_webp(tmp_path):
     Image = _pil()
     frames = [Image.new("RGB", (20, 20), color) for color in ("red", "green", "blue")]

@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 
 from .. import i18n
 from ..core import detect
-from ..core.formats import is_supported_ext
+from ..core.formats import group_of, is_supported_ext
 from ..core.jobs import ConvertJob, JobSignals
 from ..core.models import Entry
 from ..core.utils import (
@@ -335,6 +335,8 @@ class MainWindow(QMainWindow):
                 continue
             seen.add(key)
             meta = probe_metadata(ext, file)
+            if group_of(ext) == "video" and not meta.get("subtitle_tracks"):
+                targets = [fmt for fmt in targets if fmt != "srt"]
             entry = Entry(self.next_entry_id, file, ext, size, targets, meta)
             self.next_entry_id += 1
             self.entries[entry.entry_id] = entry
@@ -471,6 +473,10 @@ class MainWindow(QMainWindow):
             "quality": self.settings.quality,
             "preset": self.settings.preset,
             "dpi": self.settings.pdf_dpi,
+            "max_size": self.settings.image_max_size,
+            "video_height": self.settings.video_height,
+            "audio_track": max(0, self.settings.audio_track - 1),
+            "subtitle_track": max(0, self.settings.subtitle_track - 1),
         }
         for entry in self.entries.values():
             card = self.cards.get(entry.entry_id)

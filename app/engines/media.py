@@ -18,6 +18,7 @@ _CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
 VIDEO_OUT = ["mp4", "mkv", "webm", "avi", "mov", "gif"]
 AUDIO_OUT = ["mp3", "wav", "flac", "aac", "m4a", "ogg", "opus", "wma"]
+SUBTITLE_OUT = ["srt"]
 
 _PRESETS = {
     "high": {
@@ -99,6 +100,7 @@ class MediaEngine(Engine):
         if src_ext in VIDEO_EXTS:
             result = [fmt for fmt in VIDEO_OUT if fmt != src_ext]
             result.extend(AUDIO_OUT)
+            result.extend(SUBTITLE_OUT)
             return result
         if src_ext in AUDIO_EXTS:
             return [fmt for fmt in AUDIO_OUT if fmt != src_ext]
@@ -145,13 +147,23 @@ class MediaEngine(Engine):
                 meta["duration"] = float(duration)
         except (TypeError, ValueError):
             pass
+        audio_tracks = 0
+        subtitle_tracks = 0
         for stream in data.get("streams", []):
-            if stream.get("codec_type") == "video":
+            codec_type = stream.get("codec_type")
+            if codec_type == "audio":
+                audio_tracks += 1
+            elif codec_type == "subtitle":
+                subtitle_tracks += 1
+            if codec_type == "video" and "width" not in meta:
                 if stream.get("width"):
                     meta["width"] = stream.get("width")
                 if stream.get("height"):
                     meta["height"] = stream.get("height")
-                break
+        if audio_tracks:
+            meta["audio_tracks"] = audio_tracks
+        if subtitle_tracks:
+            meta["subtitle_tracks"] = subtitle_tracks
         return meta
 
     # ----------------------------------------------------------- conversion
@@ -169,7 +181,30 @@ class MediaEngine(Engine):
         cancel_event = options.get("cancel_event")
         if cancel_event is not None and cancel_event.is_set():
             raise CancelledError()
-        target = dst.suffix.lower().lstrip(".")
+        source_ext = str(
+            options.get("source_format") or src.suffix.lower().lstrip(".")
+        )
+        target = str(options.get("target_format") or dst.suffix.lower().lstrip("."))
+        video_source = source_ext in VIDEO_EXTS
+        try:
+            audio_index = max(0, int(options.get("audio_track", 0)))
+        except (TypeError, ValueError):
+            audio_index = 0
+        try:
+            subtitle_index = max(0, int(options.get("subtitle_track", 0)))
+        except (TypeError, ValueError):
+            subtitle_index = 0
+        if video_source and target in SUBTITLE_OUT:
+            self._extract_subtitle(src, dst, subtitle_index, progress)
+            return
+        if video_source and target in AUDIO_OUT:
+            counts = self.probe(src)
+            audio_tracks = int(counts.get("audio_tracks", 0))
+            if audio_tracks and audio_index >= audio_tracks:
+                raise EngineError(
+                    f"Audio track {audio_index + 1} does not exist "
+                    f"(this file has {audio_tracks})"
+                )
         preset_name = str(options.get("preset", "balanced"))
         preset = _PRESETS.get(preset_name, _PRESETS["balanced"])
         duration = self._duration(src)
@@ -188,7 +223,13 @@ class MediaEngine(Engine):
             "-i",
             str(src),
         ]
-        command.extend(self._codec_args(target, preset))
+        if video_source and target in VIDEO_OUT and target != "gif":
+            command.extend(
+                ["-map", "0:v:0", "-map", f"0:a:{audio_index}?"]
+            )
+        elif video_source and target in AUDIO_OUT:
+            command.extend(["-map", f"0:a:{audio_index}"])
+        command.extend(self._codec_args(target, preset, options))
         command.append(str(dst))
 
         try:
@@ -252,9 +293,72 @@ class MediaEngine(Engine):
         except (TypeError, ValueError):
             return None
 
-    def _codec_args(self, target: str, preset: dict) -> list[str]:
+    def _scale_filter(self, options: dict) -> str:
+        try:
+            height = int(options.get("video_height", 0))
+        except (TypeError, ValueError):
+            height = 0
+        if height > 0:
+            return f"scale=-2:'trunc(min(ih,{height})/2)*2'"
+        return "scale=trunc(iw/2)*2:trunc(ih/2)*2"
+
+    def _extract_subtitle(
+        self,
+        src: Path,
+        dst: Path,
+        index: int,
+        progress: Progress | None,
+    ) -> None:
+        ffmpeg = _find_tool("ffmpeg")
+        if not ffmpeg:
+            raise EngineError("FFmpeg was not found")
+        counts = self.probe(src)
+        subtitle_tracks = int(counts.get("subtitle_tracks", 0))
+        if subtitle_tracks and index >= subtitle_tracks:
+            raise EngineError(
+                f"Subtitle track {index + 1} does not exist "
+                f"(this file has {subtitle_tracks})"
+            )
+        command = [
+            ffmpeg,
+            "-y",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-i",
+            str(src),
+            "-map",
+            f"0:s:{index}",
+            "-c:s",
+            "srt",
+            str(dst),
+        ]
+        try:
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=300,
+                creationflags=_CREATE_NO_WINDOW,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise EngineError(str(exc)) from exc
+        if (
+            completed.returncode != 0
+            or not dst.exists()
+            or dst.stat().st_size == 0
+        ):
+            message = (completed.stderr or "").strip()
+            raise EngineError(message[-1200:] or "No subtitle track found")
+        if progress is not None:
+            progress(1.0)
+
+    def _codec_args(self, target: str, preset: dict, options: dict) -> list[str]:
         if target in ("mp4", "mov", "mkv"):
-            return self._video_h264_args(target, preset)
+            return self._video_h264_args(target, preset, options)
         if target == "webm":
             args = [
                 "-c:v",
@@ -268,7 +372,7 @@ class MediaEngine(Engine):
                 "-b:a",
                 preset["audio"],
                 "-vf",
-                "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+                self._scale_filter(options),
             ]
             return args
         if target == "avi":
@@ -282,7 +386,7 @@ class MediaEngine(Engine):
                 "-b:a",
                 preset["audio"],
                 "-vf",
-                "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+                self._scale_filter(options),
             ]
         if target == "gif":
             filter_graph = (
@@ -293,7 +397,12 @@ class MediaEngine(Engine):
             return ["-filter_complex", filter_graph, "-loop", "0"]
         return self._audio_args(target, preset)
 
-    def _video_h264_args(self, target: str, preset: dict) -> list[str]:
+    def _video_h264_args(
+        self,
+        target: str,
+        preset: dict,
+        options: dict,
+    ) -> list[str]:
         encoders = self._available_encoders()
         if "libx264" in encoders:
             video = [
@@ -318,7 +427,7 @@ class MediaEngine(Engine):
             "-b:a",
             preset["audio"],
             "-vf",
-            "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+            self._scale_filter(options),
         ]
         if target == "mp4":
             args.extend(["-movflags", "+faststart"])

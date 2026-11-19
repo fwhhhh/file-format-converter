@@ -97,3 +97,51 @@ class Settings:
     @filename_template.setter
     def filename_template(self, value: str) -> None:
         self._settings.setValue("output/template", value)
+
+    @property
+    def audio_track(self) -> int:
+        try:
+            value = int(self._settings.value("media/audio_track", 1))
+        except (TypeError, ValueError):
+            return 1
+        return max(1, min(16, value))
+
+    @audio_track.setter
+    def audio_track(self, value: int) -> None:
+        self._settings.setValue("media/audio_track", max(1, min(16, int(value))))
+
+    @property
+    def subtitle_track(self) -> int:
+        try:
+            value = int(self._settings.value("media/subtitle_track", 1))
+        except (TypeError, ValueError):
+            return 1
+        return max(1, min(16, value))
+
+    @subtitle_track.setter
+    def subtitle_track(self, value: int) -> None:
+        self._settings.setValue("media/subtitle_track", max(1, min(16, int(value))))
+
+    @property
+    def image_max_size(self) -> int:
+        try:
+            value = int(self._settings.value("image/max_size", 0))
+        except (TypeError, ValueError):
+            return 0
+        return value if value in (0, 1280, 1920, 2560) else 0
+
+    @image_max_size.setter
+    def image_max_size(self, value: int) -> None:
+        self._settings.setValue("image/max_size", int(value))
+
+    @property
+    def video_height(self) -> int:
+        try:
+            value = int(self._settings.value("video/height", 0))
+        except (TypeError, ValueError):
+            return 0
+        return value if value in (0, 1080, 720, 480) else 0
+
+    @video_height.setter
+    def video_height(self, value: int) -> None:
+        self._settings.setValue("video/height", int(value))

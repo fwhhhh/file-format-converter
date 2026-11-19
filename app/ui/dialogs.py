@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QSizePolicy,
     QSlider,
+    QSpinBox,
     QVBoxLayout,
 )
 
@@ -184,6 +185,32 @@ class SettingsDialog(QDialog):
         self.pdf_dpi_combo.setCurrentIndex(index if index >= 0 else 1)
         form.addRow(tr("pdf_dpi"), self.pdf_dpi_combo)
 
+        self.image_size_combo = QComboBox(self)
+        self.image_size_combo.addItem(tr("original"), 0)
+        for size in (1280, 1920, 2560):
+            self.image_size_combo.addItem(f"{size} px", size)
+        index = self.image_size_combo.findData(settings.image_max_size)
+        self.image_size_combo.setCurrentIndex(index if index >= 0 else 0)
+        form.addRow(tr("image_max_size"), self.image_size_combo)
+
+        self.video_height_combo = QComboBox(self)
+        self.video_height_combo.addItem(tr("original"), 0)
+        for height, label in ((1080, "1080p"), (720, "720p"), (480, "480p")):
+            self.video_height_combo.addItem(label, height)
+        index = self.video_height_combo.findData(settings.video_height)
+        self.video_height_combo.setCurrentIndex(index if index >= 0 else 0)
+        form.addRow(tr("video_resolution"), self.video_height_combo)
+
+        self.audio_track_spin = QSpinBox(self)
+        self.audio_track_spin.setRange(1, 16)
+        self.audio_track_spin.setValue(settings.audio_track)
+        form.addRow(tr("audio_track"), self.audio_track_spin)
+
+        self.subtitle_track_spin = QSpinBox(self)
+        self.subtitle_track_spin.setRange(1, 16)
+        self.subtitle_track_spin.setValue(settings.subtitle_track)
+        form.addRow(tr("subtitle_track"), self.subtitle_track_spin)
+
         self.suffix_edit = QLineEdit(settings.filename_suffix, self)
         self.suffix_edit.setPlaceholderText(tr("filename_suffix_hint"))
         form.addRow(tr("filename_suffix"), self.suffix_edit)
@@ -211,6 +238,10 @@ class SettingsDialog(QDialog):
         self.settings.language = str(self.language_combo.currentData())
         self.settings.theme = str(self.theme_combo.currentData())
         self.settings.pdf_dpi = int(self.pdf_dpi_combo.currentData())
+        self.settings.image_max_size = int(self.image_size_combo.currentData())
+        self.settings.video_height = int(self.video_height_combo.currentData())
+        self.settings.audio_track = self.audio_track_spin.value()
+        self.settings.subtitle_track = self.subtitle_track_spin.value()
         self.settings.filename_suffix = self.suffix_edit.text()
         self.settings.filename_template = self.template_edit.text()
         super().accept()

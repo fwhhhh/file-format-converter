@@ -23,6 +23,8 @@ in one run.
 - Pandoc handles Markdown / HTML / text ↔ docx / odt / rtf / epub, Tesseract OCR
   reads scanned PDFs into text or an editable OCR Word document (page size,
   paragraphs and approximate font sizes), and Calibre converts e-books
+- Subtitle extraction (`srt`), audio-track selection for video conversions,
+  image maximum size and video resolution settings
 - Output filename template (`{name}`, `{target}`, `{date}`, `{time}`) and suffix,
   configurable in Settings
 - PDF toolbox: merge PDFs, split by page or every N pages, extract page ranges,
@@ -43,7 +45,7 @@ in one run.
 | --- | --- | --- |
 | `jpg` `png` `webp` `bmp` `gif` `tiff` `ico` `ppm` | each other, plus `pdf` (quality setting for JPG/WEBP) | Pillow + pillow-heif |
 | `heic` | any of the formats above | Pillow + pillow-heif |
-| `mp4` `mkv` `avi` `mov` `webm` `flv` `wmv` `m4v` `ts` `mpg` | `mp4` `mkv` `webm` `avi` `mov` `gif` and audio `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma` | FFmpeg |
+| `mp4` `mkv` `avi` `mov` `webm` `flv` `wmv` `m4v` `ts` `mpg` | `mp4` `mkv` `webm` `avi` `mov` `gif`, audio `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma`, and `srt` subtitles | FFmpeg |
 | `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma` | each other | FFmpeg |
 | `zip` `7z` `tar` `tar.gz` `tar.bz2` `tar.xz` | `zip` `7z` `tar` `tar.gz` `tar.xz` | stdlib + py7zr |
 | `txt` `md` `html` | each other | Markdown, BeautifulSoup, markdownify |
@@ -65,7 +67,9 @@ PDF → TXT automatically falls back to Tesseract OCR when a PDF has no text lay
 Tesseract program itself must be installed.
 
 Video/audio conversions are re-encodes. A single file can be converted to
-several formats at once; each format is an independent job.
+several formats at once; each format is an independent job. The audio and
+subtitle track numbers in Settings apply globally to video files; the SRT
+target only appears for videos that actually contain a subtitle stream.
 
 ## Download
 
@@ -184,6 +188,9 @@ vendor/              FFmpeg binaries (downloaded, not tracked by git)
   editable Word file from a PDF. Everything else works with the full build.
 - The slim build requires Microsoft Office or LibreOffice for Office formats,
   Pandoc for Markdown conversions, Tesseract for OCR and Calibre for e-books.
+- Audio and subtitle track numbers are global settings; conversions fail with a
+  clear message when the selected track does not exist in a file.
+- Bitmap subtitles (PGS/VobSub) cannot be exported as SRT.
 - Password-protected archives are rejected.
 - Password-protected PDFs are rejected by the PDF toolbox and PDF conversions.
 - GIF output is a re-encoded animation; expect a larger file than a video.

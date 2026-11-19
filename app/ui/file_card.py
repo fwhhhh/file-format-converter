@@ -276,6 +276,16 @@ class FileCard(QFrame):
             text = tr("image_info", w=meta["width"], h=meta["height"], size=size_text)
         elif group in ("video", "audio") and meta.get("duration"):
             text = tr("media_info", duration=format_duration(meta["duration"]), size=size_text)
+            if group == "video":
+                extra = []
+                audio_tracks = int(meta.get("audio_tracks", 0) or 0)
+                subtitle_tracks = int(meta.get("subtitle_tracks", 0) or 0)
+                if audio_tracks > 1:
+                    extra.append(tr("tracks_audio", n=audio_tracks))
+                if subtitle_tracks > 0:
+                    extra.append(tr("tracks_subtitle", n=subtitle_tracks))
+                if extra:
+                    text += " · " + " · ".join(extra)
         else:
             text = size_text
         self.meta_label.setText(text)

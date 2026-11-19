@@ -15,6 +15,7 @@
 - 转换完成后显示产物图标、实际大小，并可一键打开所在文件夹
 - Word / Excel / PowerPoint 文档优先通过本机 Microsoft Office 转换，没有 Office 时用 LibreOffice 兜底；PDF 可转 Word、文本或逐页图片
 - Pandoc 负责 Markdown / HTML / 文本与 docx / odt / rtf / epub 互转；Tesseract OCR 可把扫描版 PDF 识别为文本或可编辑的 Word（保留页面尺寸、段落和大致字号）；Calibre 转换电子书
+- 支持字幕提取（`srt`）、视频音轨选择、图片最大边长和视频分辨率设置
 - 输出文件名模板（`{name}`、`{target}`、`{date}`、`{time}`）与后缀，可在设置中配置
 - PDF 工具箱：合并 PDF、按页或每 N 页拆分、提取页码范围、把多张图片合成多页 PDF、按指定 DPI 和页码范围把 PDF 导出为图片
 - 转换中可取消，每个文件单独显示百分比，完成后有任务栏提醒
@@ -29,7 +30,7 @@
 | --- | --- | --- |
 | `jpg` `png` `webp` `bmp` `gif` `tiff` `ico` `ppm` | 互相转换，另可转 `pdf`（JPG/WEBP 可调质量） | Pillow + pillow-heif |
 | `heic` | 上述任意格式 | Pillow + pillow-heif |
-| `mp4` `mkv` `avi` `mov` `webm` `flv` `wmv` `m4v` `ts` `mpg` | `mp4` `mkv` `webm` `avi` `mov` `gif`，以及音频 `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma` | FFmpeg |
+| `mp4` `mkv` `avi` `mov` `webm` `flv` `wmv` `m4v` `ts` `mpg` | `mp4` `mkv` `webm` `avi` `mov` `gif`，音频 `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma`，以及 `srt` 字幕 | FFmpeg |
 | `mp3` `wav` `flac` `aac` `m4a` `ogg` `opus` `wma` | 互相转换 | FFmpeg |
 | `zip` `7z` `tar` `tar.gz` `tar.bz2` `tar.xz` | `zip` `7z` `tar` `tar.gz` `tar.xz` | 标准库 + py7zr |
 | `txt` `md` `html` | 互相转换 | Markdown、BeautifulSoup、markdownify |
@@ -45,7 +46,7 @@ Office 转换优先使用本机已安装的 Microsoft Office（Word/Excel/PowerP
 
 PDF 没有文字层（扫描件）时，PDF → TXT 会自动改用 Tesseract OCR。中英文 OCR 语言数据已随程序打包，Tesseract 程序本身需要安装。
 
-音视频互转都是重新编码；同一个文件勾选多个格式时，每个格式是独立的任务。
+音视频互转都是重新编码；同一个文件勾选多个格式时，每个格式是独立的任务。设置里的音频轨道/字幕轨道序号对全部视频生效；只有当视频确实包含字幕流时，卡片上才会出现 `SRT` 目标。
 
 ## 下载
 
@@ -140,6 +141,8 @@ vendor/              FFmpeg 可执行文件（下载所得，不进入 git）
 - PDF → Word 使用 Word 的 PDF 重排功能。扫描版 PDF 可以选择 `DOCX · OCR` 目标，得到可编辑的文字版 Word，保留页面尺寸、段落分组和大致字号；精确版式与图片不会还原。
 - PDF → Word 仍然需要本机安装 Microsoft Word；LibreOffice 无法把 PDF 还原成可编辑的 Word。其它文档转换在全内置版里不需要额外安装。
 - 精简版的 Office 格式需要 Microsoft Office 或 LibreOffice，Markdown 转换需要 Pandoc，OCR 需要 Tesseract，电子书需要 Calibre。
+- 音频/字幕轨道序号是全局设置；文件缺少所选轨道时会给出明确错误。
+- 图形字幕（PGS/VobSub）无法导出为 SRT。
 - 不支持加密压缩包。
 - PDF 工具箱和 PDF 转换不支持加密 PDF。
 - GIF 输出是重新编码的动画，体积会比视频大。
