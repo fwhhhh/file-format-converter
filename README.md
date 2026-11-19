@@ -7,6 +7,8 @@ the window, tick the formats you want, and convert. One source file can be
 converted to several formats at once, and any number of files can be processed
 in one run.
 
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
 ![Screenshot](docs/screenshot-en.png)
 
 ## Features
