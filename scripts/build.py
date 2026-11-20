@@ -10,11 +10,26 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import stat
 import sys
 import tempfile
 from pathlib import Path
 
 import PyInstaller.__main__
+
+
+def remove_tree(path: Path) -> None:
+    """Delete a build folder even when copied tools are read-only."""
+    if not path.exists():
+        return
+    for item in [path, *path.rglob("*")]:
+        try:
+            item.chmod(stat.S_IWRITE)
+        except OSError:
+            pass
+    shutil.rmtree(path, ignore_errors=True)
+    if path.exists():
+        raise OSError(f"Cannot remove {path}")
 
 
 def _full_tool_sources(root: Path) -> dict[str, Path] | None:
@@ -79,7 +94,7 @@ def _copy_full_tools(
     ):
         target = vendor / name
         if target.exists():
-            shutil.rmtree(target, ignore_errors=True)
+            remove_tree(target)
         print(f"Copying bundled {name}...")
         shutil.copytree(sources[key], target)
     print("Document tools copied into the package")
@@ -200,9 +215,10 @@ def main() -> int:
         if copied_vendor:
             arguments += ["--add-data", f"{stage_vendor}{separator}vendor"]
         arguments.append(str(root / "run.py"))
+        remove_tree(root / "dist" / app_name)
         PyInstaller.__main__.run(arguments)
     finally:
-        shutil.rmtree(stage, ignore_errors=True)
+        remove_tree(stage)
 
     trim_dist(root, app_name)
     if args.full and full_tools is not None:

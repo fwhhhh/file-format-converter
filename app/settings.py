@@ -145,3 +145,12 @@ class Settings:
     @video_height.setter
     def video_height(self, value: int) -> None:
         self._settings.setValue("video/height", int(value))
+
+    @property
+    def check_updates(self) -> bool:
+        value = self._settings.value("ui/check_updates", True, type=bool)
+        return bool(value)
+
+    @check_updates.setter
+    def check_updates(self, value: bool) -> None:
+        self._settings.setValue("ui/check_updates", bool(value))

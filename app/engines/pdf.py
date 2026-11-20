@@ -34,6 +34,14 @@ def _has_python_docx() -> bool:
     return True
 
 
+def _has_pdfplumber() -> bool:
+    try:
+        import pdfplumber  # noqa: F401
+    except Exception:
+        return False
+    return True
+
+
 class PdfEngine(Engine):
     key = "pdf"
     label_key = "engine_pdf"
@@ -57,6 +65,8 @@ class PdfEngine(Engine):
                     result.append("docx_ocr")
             except Exception:
                 pass
+        if _has_pdfplumber() and _has_python_docx():
+            result.append("docx_layout")
         return result
 
     def artifact_name(self, stem: str, target: str) -> str:
@@ -64,6 +74,8 @@ class PdfEngine(Engine):
             return f"{stem}_{target}.zip"
         if target == "docx_ocr":
             return f"{stem}_ocr.docx"
+        if target == "docx_layout":
+            return f"{stem}_layout.docx"
         return super().artifact_name(stem, target)
 
     def convert(
@@ -84,6 +96,9 @@ class PdfEngine(Engine):
             return
         if target == "docx_ocr":
             self._ocr_to_docx(src, dst, options, progress)
+            return
+        if target == "docx_layout":
+            self._layout_to_docx(src, dst, options, progress)
             return
         raise EngineError(f"Unsupported PDF target: {target}")
 
@@ -209,6 +224,158 @@ class PdfEngine(Engine):
             progress(1.0)
 
     # ------------------------------------------------------------- docx
+
+    def _layout_to_docx(
+        self,
+        src: Path,
+        dst: Path,
+        options: dict,
+        progress: Progress | None,
+    ) -> None:
+        """Rebuild a Word document from a digital PDF without Microsoft Word.
+
+        Text positions, page size and font sizes come from pdfplumber.  If the
+        PDF has no text layer, fall back to the OCR Word path.
+        """
+        try:
+            import pdfplumber
+            from docx import Document
+            from docx.enum.section import WD_SECTION
+            from docx.oxml.ns import qn
+            from docx.shared import Inches, Pt
+        except Exception as exc:  # noqa: BLE001
+            raise EngineError(
+                "PDF layout to Word requires pdfplumber and python-docx"
+            ) from exc
+
+        pages: list[tuple[float, float, list[dict]]] = []
+        try:
+            with pdfplumber.open(str(src)) as pdf:
+                total = len(pdf.pages)
+                if total == 0:
+                    raise EngineError("This PDF has no pages")
+                for index, page in enumerate(pdf.pages):
+                    if self._cancel_requested(options):
+                        raise CancelledError()
+                    extracted = page.extract_text_lines(strip=True, return_chars=True)
+                    lines: list[dict] = []
+                    for line in extracted:
+                        text = str(line.get("text") or "").strip()
+                        if not text:
+                            continue
+                        sizes: list[float] = []
+                        for character in line.get("chars") or []:
+                            try:
+                                sizes.append(float(character.get("size", 0)))
+                            except (TypeError, ValueError):
+                                continue
+                        sizes.sort()
+                        font_pt = sizes[len(sizes) // 2] if sizes else 10.0
+                        font_pt = max(6.0, min(48.0, font_pt))
+                        lines.append(
+                            {
+                                "text": text,
+                                "left": float(line.get("x0", 0.0)),
+                                "top": float(line.get("top", 0.0)),
+                                "bottom": float(line.get("bottom", 0.0)),
+                                "font_pt": font_pt,
+                            }
+                        )
+                    pages.append(
+                        (float(page.width), float(page.height), lines)
+                    )
+                    if progress is not None:
+                        progress(0.1 + 0.85 * (index + 1) / total)
+        except EngineError:
+            raise
+        except CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise EngineError(str(exc)) from exc
+
+        if not any(lines for _width, _height, lines in pages):
+            from .ocr import available as ocr_available
+
+            if ocr_available():
+                self._ocr_to_docx(src, dst, options, progress)
+                return
+            raise EngineError(
+                "This PDF has no text layer. Use DOCX · OCR for scanned PDFs."
+            )
+
+        try:
+            word_document = Document()
+            try:
+                style = word_document.styles["Normal"]
+                style.font.name = "Microsoft YaHei"
+                style.font.size = Pt(10.5)
+                try:
+                    style.element.rPr.rFonts.set(qn("w:eastAsia"), "Microsoft YaHei")
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+            for page_index, (width_points, height_points, lines) in enumerate(pages):
+                if page_index == 0:
+                    section = word_document.sections[0]
+                else:
+                    section = word_document.add_section(WD_SECTION.NEW_PAGE)
+                section.page_width = Inches(max(width_points, 72.0) / 72.0)
+                section.page_height = Inches(max(height_points, 72.0) / 72.0)
+                section.top_margin = Inches(0.5)
+                section.bottom_margin = Inches(0.5)
+                section.left_margin = Inches(0.5)
+                section.right_margin = Inches(0.5)
+                if not lines:
+                    continue
+
+                groups: list[list[dict]] = []
+                current: list[dict] = []
+                previous: dict | None = None
+                for line in lines:
+                    if previous is not None:
+                        gap = line["top"] - previous["bottom"]
+                        size = max(line["font_pt"], previous["font_pt"], 1.0)
+                        if (
+                            gap > size * 0.9
+                            or abs(line["left"] - previous["left"]) > size * 3
+                        ):
+                            groups.append(current)
+                            current = []
+                    current.append(line)
+                    previous = line
+                if current:
+                    groups.append(current)
+
+                for group in groups:
+                    paragraph = word_document.add_paragraph()
+                    try:
+                        paragraph.paragraph_format.space_after = Pt(3)
+                        indent = max(
+                            0.0,
+                            min(144.0, group[0]["left"] - 36.0),
+                        )
+                        paragraph.paragraph_format.left_indent = Pt(indent)
+                    except Exception:
+                        pass
+                    for line_index, line in enumerate(group):
+                        run = paragraph.add_run(line["text"])
+                        try:
+                            run.font.name = "Microsoft YaHei"
+                            run.font.size = Pt(line["font_pt"])
+                            run._element.rPr.rFonts.set(
+                                qn("w:eastAsia"), "Microsoft YaHei"
+                            )
+                        except Exception:
+                            pass
+                        if line_index != len(group) - 1:
+                            run.add_break()
+            word_document.save(str(dst))
+        except Exception as exc:  # noqa: BLE001
+            raise EngineError(str(exc)) from exc
+        if progress is not None:
+            progress(1.0)
 
     def _ocr_to_docx(
         self,

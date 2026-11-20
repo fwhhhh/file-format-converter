@@ -29,6 +29,14 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
   image maximum size and video resolution settings
 - Output filename template (`{name}`, `{target}`, `{date}`, `{time}`) and suffix,
   configurable in Settings
+- PDF → Word without Microsoft Word: text-based PDFs are rebuilt with
+  pdfplumber (page size, paragraphs, indents and approximate font sizes);
+  scanned PDFs automatically fall back to OCR Word
+- Optional Explorer context menu and Open with entries (installer tasks);
+  files and folders passed on the command line are opened at startup, and
+  opening more files reuses the existing window
+- Startup check for newer GitHub releases (opens the release page; no silent
+  self-update)
 - PDF toolbox: merge PDFs, split by page or every N pages, extract page ranges,
   combine images into a multi-page PDF, and export PDF pages as images with a
   chosen DPI and page range
@@ -55,7 +63,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 | `docx` `doc` `odt` `rtf` | `pdf` | Microsoft Word (COM) or LibreOffice |
 | `xlsx` `xls` | `pdf`; `xls` also to `xlsx` | Microsoft Excel (COM) or LibreOffice |
 | `pptx` `ppt` | `pdf` | Microsoft PowerPoint (COM) or LibreOffice |
-| `pdf` | `docx` (Word), `docx · OCR` (scanned PDFs), `txt`, `png` / `jpg` (a ZIP of page images) | Word, Tesseract, python-docx, pypdf, pypdfium2 |
+| `pdf` | `docx` (Word), `docx · Layout` (no Word needed), `docx · OCR` (scanned PDFs), `txt`, `png` / `jpg` (a ZIP of page images) | Word, pdfplumber, Tesseract, python-docx, pypdf, pypdfium2 |
 | `docx` `odt` `rtf` `epub` `md` `html` `txt` | `md` `html` `txt` `docx` `odt` `rtf` `epub` (except the source format) | Pandoc |
 | `epub` `mobi` `azw3` | `epub` `mobi` `azw3` `pdf` `txt` | Calibre |
 
@@ -78,20 +86,22 @@ target only appears for videos that actually contain a subtitle stream.
 Grab the latest release, unzip it anywhere and run
 `FileFormatConverter.exe`. Two packages are published:
 
-- **Slim** (~138 MB): FFmpeg and OCR language data bundled; Microsoft Office,
+- **Slim** (~142 MB): FFmpeg and OCR language data bundled; Microsoft Office,
   LibreOffice, Pandoc, Tesseract and Calibre are detected if installed.
-- **Full** (~2.4 GB unpacked, ~914 MB download; the bundled document tools
-  alone are about 2.1 GB): also bundles LibreOffice, Pandoc, Tesseract and
+- **Full** (~2.4 GB unpacked, ~882 MB download; the bundled document tools
+  alone are about 2.2 GB): also bundles LibreOffice, Pandoc, Tesseract and
   Calibre, so documents, OCR and e-books work on a fresh Windows computer
   without installing anything else. Microsoft Office itself cannot be bundled
-  (licensing); PDF → Word still needs Microsoft Word.
+  (licensing); exact PDF → Word reflow still needs Microsoft Word, while
+  `DOCX · Layout` works without it.
 
 Windows installers are also provided (`FileFormatConverter-*-Setup.exe`). They
-let you choose the install folder, create Start Menu entries and an optional
-desktop shortcut. The default install is per-user and needs no administrator
-rights; the installer can also run elevated to install under Program Files.
+let you choose the install folder, create Start Menu entries, and optionally
+enable a desktop shortcut, an Explorer context-menu entry and Open with entries.
+The default install is per-user and needs no administrator rights; the
+installer can also run elevated to install under Program Files.
 Unsigned installers may show the Windows SmartScreen prompt; choose
-"More info → Run anyway".
+"More info → Run anyway". SHA-256 hashes are published in `SHA256SUMS.txt`.
 
 Missing tools are greyed out automatically.
 
@@ -198,14 +208,29 @@ tests/               pytest suite
 vendor/              FFmpeg binaries (downloaded, not tracked by git)
 ```
 
+## Verify downloads
+
+`SHA256SUMS.txt` in the release folder contains the hashes of the ZIP and setup
+files. On Windows:
+
+```powershell
+Get-FileHash .\FileFormatConverter-0.8.0-win64.zip -Algorithm SHA256
+```
+
+The installers are not code-signed. Removing the SmartScreen warning requires a
+code-signing certificate (a paid OV/EV certificate, or a free open-source
+signing service such as SignPath). A self-signed certificate does not help other
+users.
+
 ## Known limitations
 
-- PDF → Word uses Word's PDF reflow. Scanned PDFs can use the `DOCX · OCR`
-  target to produce an editable text document with page size, paragraph
-  grouping and approximate font sizes; exact layout and images are not
-  reconstructed.
-- PDF → Word still requires Microsoft Word; LibreOffice cannot reconstruct an
-  editable Word file from a PDF. Everything else works with the full build.
+- Exact PDF → Word reflow uses Microsoft Word. The `DOCX · Layout` target
+  rebuilds text-based PDFs with pdfplumber and does not need Word; it keeps
+  page size, paragraphs, indents and approximate font sizes, but not images.
+  Scanned PDFs can use the `DOCX · OCR` target instead.
+- LibreOffice cannot reconstruct an editable Word file from a PDF; use
+  `DOCX · Layout`, `DOCX · OCR` or Microsoft Word. Everything else works with
+  the full build.
 - The slim build requires Microsoft Office or LibreOffice for Office formats,
   Pandoc for Markdown conversions, Tesseract for OCR and Calibre for e-books.
 - Audio and subtitle track numbers are global settings; conversions fail with a
@@ -217,6 +242,8 @@ vendor/              FFmpeg binaries (downloaded, not tracked by git)
 - XLSX to CSV converts the active worksheet only.
 - PDF → PNG / JPG returns one ZIP per PDF containing all pages; docx → Markdown
   may create a `<name>_media` folder for embedded images.
+- Windows 11 lists the classic context-menu entry under "Show more options";
+  the modern top-level menu requires a signed shell extension.
 
 ## License
 

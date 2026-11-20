@@ -6,8 +6,8 @@ import threading
 from collections import Counter
 from pathlib import Path
 
-from PySide6.QtCore import QFileInfo, Qt, QThreadPool
-from PySide6.QtGui import QAction, QIcon, QKeySequence
+from PySide6.QtCore import QFileInfo, Qt, QThreadPool, QTimer, QUrl
+from PySide6.QtGui import QAction, QDesktopServices, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -35,6 +35,7 @@ from ..core import detect
 from ..core.formats import group_of, is_supported_ext
 from ..core.jobs import ConvertJob, JobSignals
 from ..core.models import Entry
+from ..core.updater import UpdateJob, UpdateSignals
 from ..core.utils import (
     expand_filename_template,
     resource_path,
@@ -75,6 +76,11 @@ class MainWindow(QMainWindow):
         self.signals.cancelled.connect(self._on_job_cancelled)
         self.pool = QThreadPool(self)
         self.pool.setMaxThreadCount(3)
+        self.update_signals = UpdateSignals(self)
+        self.update_signals.found.connect(self._on_update_found)
+        self.update_pool = QThreadPool(self)
+        self.update_pool.setMaxThreadCount(1)
+        self._update_checked = False
         self.icon_provider = QFileIconProvider()
         self.setAcceptDrops(True)
 
@@ -83,6 +89,7 @@ class MainWindow(QMainWindow):
         self.resize(1120, 760)
         self.setMinimumSize(960, 640)
         self.statusBar().showMessage(tr("ready"))
+        QTimer.singleShot(1500, self.check_updates)
 
     # ------------------------------------------------------------- UI setup
 
@@ -294,6 +301,15 @@ class MainWindow(QMainWindow):
         if folder:
             self.add_paths([folder])
 
+    def receive_paths(self, paths: list[str]) -> None:
+        """Handle files sent by a second process (context menu / Open with)."""
+        if paths:
+            self.add_paths(paths)
+        if self.isMinimized():
+            self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
     def add_paths(self, raw_paths: list[str]) -> None:
         if self.running or not raw_paths:
             return
@@ -444,6 +460,27 @@ class MainWindow(QMainWindow):
 
     def show_engines(self, _checked: bool = False) -> None:
         EngineStatusDialog(self).exec()
+
+    def check_updates(self) -> None:
+        if self._update_checked:
+            return
+        if not getattr(self.settings, "check_updates", False):
+            return
+        self._update_checked = True
+        self.update_pool.start(UpdateJob(self.update_signals))
+
+    def _on_update_found(self, tag: str, page: str) -> None:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setWindowTitle(tr("update_title"))
+        box.setText(tr("update_available", version=tag))
+        open_button = box.addButton(
+            tr("update_open"), QMessageBox.ButtonRole.AcceptRole
+        )
+        box.addButton(tr("cancel"), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is open_button:
+            QDesktopServices.openUrl(QUrl(page))
 
     # ------------------------------------------------------------ conversion
 

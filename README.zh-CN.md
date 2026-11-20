@@ -17,7 +17,10 @@
 - 转换完成后显示产物图标、实际大小，并可一键打开所在文件夹
 - Word / Excel / PowerPoint 文档优先通过本机 Microsoft Office 转换，没有 Office 时用 LibreOffice 兜底；PDF 可转 Word、文本或逐页图片
 - Pandoc 负责 Markdown / HTML / 文本与 docx / odt / rtf / epub 互转；Tesseract OCR 可把扫描版 PDF 识别为文本或可编辑的 Word（保留页面尺寸、段落和大致字号）；Calibre 转换电子书
+- 无 Microsoft Word 时，PDF → Word 可用 `DOCX · 版式`：pdfplumber 重建页面尺寸、段落、缩进和大致字号；扫描件自动回退 OCR
 - 支持字幕提取（`srt`）、视频音轨选择、图片最大边长和视频分辨率设置
+- 安装程序可选启用资源管理器右键菜单和「打开方式」项；支持命令行直接打开文件/文件夹，再次打开会复用已有窗口
+- 启动时检查 GitHub 新版本（只打开下载页，不静默自动更新）
 - 输出文件名模板（`{name}`、`{target}`、`{date}`、`{time}`）与后缀，可在设置中配置
 - PDF 工具箱：合并 PDF、按页或每 N 页拆分、提取页码范围、把多张图片合成多页 PDF、按指定 DPI 和页码范围把 PDF 导出为图片
 - 转换中可取消，每个文件单独显示百分比，完成后有任务栏提醒
@@ -40,7 +43,7 @@
 | `docx` `doc` `odt` `rtf` | `pdf` | Microsoft Word（COM）或 LibreOffice |
 | `xlsx` `xls` | `pdf`；`xls` 还可转 `xlsx` | Microsoft Excel（COM）或 LibreOffice |
 | `pptx` `ppt` | `pdf` | Microsoft PowerPoint（COM）或 LibreOffice |
-| `pdf` | `docx`（Word）、`docx · OCR`（扫描件）、`txt`、`png` / `jpg`（逐页图片打包为 ZIP） | Word、Tesseract、python-docx、pypdf、pypdfium2 |
+| `pdf` | `docx`（Word）、`docx · 版式`（无需 Word）、`docx · OCR`（扫描件）、`txt`、`png` / `jpg`（逐页图片打包为 ZIP） | Word、pdfplumber、Tesseract、python-docx、pypdf、pypdfium2 |
 | `docx` `odt` `rtf` `epub` `md` `html` `txt` | `md` `html` `txt` `docx` `odt` `rtf` `epub`（除源格式外） | Pandoc |
 | `epub` `mobi` `azw3` | `epub` `mobi` `azw3` `pdf` `txt` | Calibre |
 
@@ -54,10 +57,10 @@ PDF 没有文字层（扫描件）时，PDF → TXT 会自动改用 Tesseract OC
 
 到 Releases 下载最新压缩包，解压后双击 `FileFormatConverter.exe` 即可。发布分两个版本：
 
-- **精简版**（约 138MB）：内置 FFmpeg 和 OCR 语言数据；Microsoft Office、LibreOffice、Pandoc、Tesseract、Calibre 装了就能用，没装时灰显。
-- **全内置版**（解压约 2.4GB，下载约 914MB；其中文档工具本身约 2.1GB）：额外打包 LibreOffice、Pandoc、Tesseract 与 Calibre，换一台全新 Windows 电脑也能直接处理文档、OCR 和电子书。Microsoft Office 受授权限制不能打包；PDF → Word 仍需要本机安装 Word。
+- **精简版**（约 142MB）：内置 FFmpeg 和 OCR 语言数据；Microsoft Office、LibreOffice、Pandoc、Tesseract、Calibre 装了就能用，没装时灰显。
+- **全内置版**（解压约 2.4GB，下载约 882MB；其中文档工具本身约 2.2GB）：额外打包 LibreOffice、Pandoc、Tesseract 与 Calibre，换一台全新 Windows 电脑也能直接处理文档、OCR 和电子书。Microsoft Office 受授权限制不能打包；精确的 PDF → Word 重排仍需要本机安装 Word，`DOCX · 版式` 则不需要。
 
-另外提供 Windows 安装程序（`FileFormatConverter-*-Setup.exe`）：安装时可以选择目录、创建开始菜单项，并可勾选是否创建桌面快捷方式。默认按当前用户安装，不需要管理员权限；也支持以管理员身份安装到 Program Files。安装包未签名，Windows SmartScreen 可能提示，选择“更多信息 → 仍要运行”即可。
+另外提供 Windows 安装程序（`FileFormatConverter-*-Setup.exe`）：安装时可以选择目录、创建开始菜单项，并可勾选桌面快捷方式、资源管理器右键菜单和「打开方式」项。默认按当前用户安装，不需要管理员权限；也支持以管理员身份安装到 Program Files。安装包未签名，Windows SmartScreen 可能提示，选择“更多信息 → 仍要运行”即可；校验和见 `SHA256SUMS.txt`。
 
 缺少的引擎会自动灰显。
 
@@ -149,10 +152,20 @@ tests/               pytest 测试
 vendor/              FFmpeg 可执行文件（下载所得，不进入 git）
 ```
 
+## 校验下载文件
+
+发布目录里的 `SHA256SUMS.txt` 记录 ZIP 和安装包的哈希。Windows 下可以这样核对：
+
+```powershell
+Get-FileHash .\FileFormatConverter-0.8.0-win64.zip -Algorithm SHA256
+```
+
+安装包没有代码签名。要完全去掉 SmartScreen 提示，需要代码签名证书（付费 OV/EV 证书，或 SignPath 这类面向开源项目的免费签名服务）；自签名证书对别人的电脑无效。
+
 ## 已知限制
 
-- PDF → Word 使用 Word 的 PDF 重排功能。扫描版 PDF 可以选择 `DOCX · OCR` 目标，得到可编辑的文字版 Word，保留页面尺寸、段落分组和大致字号；精确版式与图片不会还原。
-- PDF → Word 仍然需要本机安装 Microsoft Word；LibreOffice 无法把 PDF 还原成可编辑的 Word。其它文档转换在全内置版里不需要额外安装。
+- 精确的 PDF → Word 重排使用 Microsoft Word。`DOCX · 版式` 由 pdfplumber 重建文字版 PDF，不需要 Word；保留页面尺寸、段落、缩进和大致字号，但不还原图片。扫描件可用 `DOCX · OCR`。
+- LibreOffice 无法把 PDF 还原成可编辑的 Word；请用 `DOCX · 版式`、`DOCX · OCR` 或 Microsoft Word。其它文档转换在全内置版里不需要额外安装。
 - 精简版的 Office 格式需要 Microsoft Office 或 LibreOffice，Markdown 转换需要 Pandoc，OCR 需要 Tesseract，电子书需要 Calibre。
 - 音频/字幕轨道序号是全局设置；文件缺少所选轨道时会给出明确错误。
 - 图形字幕（PGS/VobSub）无法导出为 SRT。
@@ -161,6 +174,7 @@ vendor/              FFmpeg 可执行文件（下载所得，不进入 git）
 - GIF 输出是重新编码的动画，体积会比视频大。
 - XLSX 转 CSV 只转换当前工作表。
 - PDF 转 PNG / JPG 每份 PDF 输出一个包含全部页面的 ZIP；docx 转 Markdown 可能生成 `<名称>_media` 文件夹存放内嵌图片。
+- Windows 11 的经典右键菜单项位于「显示更多选项」中；要进入顶层新菜单需要签名的 shell 扩展。
 
 ## 开源协议
 

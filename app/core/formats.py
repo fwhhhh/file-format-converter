@@ -42,7 +42,7 @@ _ALIASES = {
     "y4m": "y4m",
 }
 
-_DISPLAY_OVERRIDES = {"docx_ocr": "DOCX · OCR"}
+_DISPLAY_OVERRIDES = {"docx_ocr": "DOCX · OCR", "docx_layout": "DOCX · LAYOUT"}
 
 _EXT_SET = set(ALL_EXTS)
 
@@ -102,7 +102,16 @@ def default_target(ext: str, targets: list[str]) -> str:
     if group == "image" and ext == "gif" and "webp" in targets:
         return "webp"
     if group == "document":
-        for candidate in ("pdf", "docx", "docx_ocr", "txt", "png", "jpg", "xlsx"):
+        for candidate in (
+            "pdf",
+            "docx",
+            "docx_layout",
+            "docx_ocr",
+            "txt",
+            "png",
+            "jpg",
+            "xlsx",
+        ):
             if candidate in targets:
                 return candidate
         return targets[0]

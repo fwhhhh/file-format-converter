@@ -159,6 +159,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "preparing": {"zh": "准备中…", "en": "Preparing…"},
     "ready": {"zh": "就绪", "en": "Ready"},
     "pdf_dpi": {"zh": "PDF 图片分辨率", "en": "PDF image DPI"},
+    "format_docx_layout": {"zh": "DOCX · 版式", "en": "DOCX · Layout"},
     "filename_suffix": {"zh": "输出文件名后缀", "en": "Filename suffix"},
     "filename_suffix_hint": {
         "zh": "例如 _converted，留空则不添加",
@@ -176,6 +177,13 @@ _STRINGS: dict[str, dict[str, str]] = {
     "subtitle_track": {"zh": "字幕轨道", "en": "Subtitle track"},
     "tracks_audio": {"zh": "音轨 {n}", "en": "{n} audio"},
     "tracks_subtitle": {"zh": "字幕 {n}", "en": "{n} subs"},
+    "check_updates": {"zh": "启动时检查更新", "en": "Check for updates on startup"},
+    "update_title": {"zh": "发现新版本", "en": "Update available"},
+    "update_available": {
+        "zh": "发现新版本 {version}。是否打开下载页面？",
+        "en": "A new version {version} is available. Open the download page?",
+    },
+    "update_open": {"zh": "打开下载页", "en": "Open download page"},
     "pdf_tools": {"zh": "PDF 工具", "en": "PDF tools"},
     "pdf_merge": {"zh": "合并 PDF", "en": "Merge PDFs"},
     "pdf_split": {"zh": "拆分 PDF", "en": "Split PDF"},

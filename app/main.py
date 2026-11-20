@@ -261,6 +261,24 @@ def run_selftest() -> int:
                 if "SCAN" not in document_xml and "123" not in document_xml:
                     raise RuntimeError("OCR to Word document has no recognized text")
                 lines.append(f"OK   scanned pdf -> ocr docx ({scan_docx.stat().st_size} bytes)")
+
+                layout_docx = temp_root / "sample_layout.docx"
+                layout_engine = engine_for("pdf", "docx_layout")
+                if layout_engine is None:
+                    lines.append("SKIP PDF layout to Word")
+                else:
+                    layout_engine.convert(
+                        pdf_path,
+                        layout_docx,
+                        {"target_format": "docx_layout", "source_format": "pdf"},
+                    )
+                    with zipfile.ZipFile(layout_docx) as archive:
+                        layout_xml = archive.read("word/document.xml").decode("utf-8")
+                    if "Hello" not in layout_xml:
+                        raise RuntimeError("PDF layout to Word lost the text")
+                    lines.append(
+                        f"OK   sample.pdf -> layout docx ({layout_docx.stat().st_size} bytes)"
+                    )
             except Exception as exc:  # noqa: BLE001
                 lines.append(f"FAIL OCR pipeline: {exc}")
         else:
@@ -341,6 +359,20 @@ def main() -> int:
     app.setOrganizationName("FileFormatConverter")
     app.setApplicationVersion(__version__)
 
+    startup_paths = [arg for arg in sys.argv[1:] if not arg.startswith("-")]
+
+    from .single_instance import SingleInstance
+
+    guard = SingleInstance()
+    if guard.acquire():
+        # Listen before building the window so processes started by a
+        # multi-file context-menu selection can connect right away.
+        guard.listen()
+    elif guard.notify_running(startup_paths, wait=3.0):
+        return 0
+    else:
+        guard.listen(takeover=False)
+
     icon_path = resource_path("assets/app.ico")
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
@@ -359,7 +391,13 @@ def main() -> int:
         pass
 
     window = MainWindow(settings)
+    guard.paths_received.connect(window.receive_paths)
+    app.aboutToQuit.connect(guard.close)
     window.show()
+    if startup_paths:
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(0, lambda: window.add_paths(startup_paths))
     return app.exec()
 
 

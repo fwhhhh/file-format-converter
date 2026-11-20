@@ -216,7 +216,10 @@ class FileCard(QFrame):
 
         self.flow = FlowLayout(None, 0, 8)
         for fmt in self.entry.targets:
-            label = formats.display(fmt)
+            if fmt == "docx_layout":
+                label = tr("format_docx_layout")
+            else:
+                label = formats.display(fmt)
             if self.entry.ext == "pdf" and fmt in ("png", "jpg"):
                 label = f"{label} · ZIP"
             chip = QPushButton(label, self.body)

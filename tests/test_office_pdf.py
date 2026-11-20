@@ -56,6 +56,33 @@ def test_office_targets():
 
 
 @pytest.mark.skipif(WORD_MISSING, reason="Microsoft Word is not installed")
+def test_pdf_to_layout_docx_without_word(tmp_path):
+    pytest.importorskip("pdfplumber")
+    docx = tmp_path / "sample.docx"
+    _write_minimal_docx(docx)
+    pdf = tmp_path / "sample.pdf"
+    engine_for("docx", "pdf").convert(
+        docx, pdf, {"target_format": "pdf", "source_format": "docx"}
+    )
+
+    target = tmp_path / "sample_layout.docx"
+    engine = engine_for("pdf", "docx_layout")
+    assert engine is not None
+    engine.convert(
+        pdf,
+        target,
+        {"target_format": "docx_layout", "source_format": "pdf"},
+    )
+
+    from docx import Document
+
+    document = Document(str(target))
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+    assert "Hello" in text
+    assert document.sections and document.sections[0].page_width > 0
+
+
+@pytest.mark.skipif(WORD_MISSING, reason="Microsoft Word is not installed")
 def test_docx_to_pdf_and_pdf_to_docx(tmp_path):
     docx = tmp_path / "sample.docx"
     _write_minimal_docx(docx)

@@ -104,3 +104,22 @@ def test_scanned_pdf_to_ocr_docx(tmp_path):
     assert document.sections[0].page_width > 0
     paragraph_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
     assert "SCAN" in paragraph_text or "123" in paragraph_text
+
+
+@pytest.mark.skipif(not ocr_available(), reason="Tesseract OCR is not available")
+def test_scanned_pdf_layout_falls_back_to_ocr(tmp_path):
+    pytest.importorskip("pdfplumber")
+    pdf = _make_scan_pdf(tmp_path)
+    assert "docx_layout" in targets_for("pdf")
+
+    target = tmp_path / "scan_layout.docx"
+    engine = engine_for("pdf", "docx_layout")
+    assert engine is not None
+    engine.convert(
+        pdf,
+        target,
+        {"target_format": "docx_layout", "source_format": "pdf"},
+    )
+    with zipfile.ZipFile(target) as archive:
+        xml = archive.read("word/document.xml").decode("utf-8")
+    assert "SCAN" in xml or "123" in xml

@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -219,6 +220,10 @@ class SettingsDialog(QDialog):
         self.template_edit.setPlaceholderText(tr("filename_template_hint"))
         form.addRow(tr("filename_template"), self.template_edit)
 
+        self.check_updates_box = QCheckBox(tr("check_updates"), self)
+        self.check_updates_box.setChecked(settings.check_updates)
+        form.addRow(self.check_updates_box)
+
         form.addRow(self._make_buttons())
 
     def _make_buttons(self) -> QDialogButtonBox:
@@ -244,6 +249,7 @@ class SettingsDialog(QDialog):
         self.settings.subtitle_track = self.subtitle_track_spin.value()
         self.settings.filename_suffix = self.suffix_edit.text()
         self.settings.filename_template = self.template_edit.text()
+        self.settings.check_updates = self.check_updates_box.isChecked()
         super().accept()
 
 

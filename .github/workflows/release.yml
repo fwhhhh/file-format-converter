@@ -32,7 +32,17 @@ jobs:
         shell: pwsh
         run: |
           python -c "import os, shutil; tag=os.environ['GITHUB_REF_NAME']; shutil.make_archive(f'dist/FileFormatConverter-{tag}-win64', 'zip', root_dir='dist', base_dir='FileFormatConverter')"
+      - name: Write checksums
+        shell: pwsh
+        run: |
+          $lines = Get-ChildItem dist -File | Where-Object { $_.Name -match '\.(zip|exe)$' } | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          }
+          [System.IO.File]::WriteAllText("dist/SHA256SUMS.txt", ($lines -join "`n") + "`n")
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/FileFormatConverter-*-win64.zip
+          files: |
+            dist/FileFormatConverter-*-win64.zip
+            dist/SHA256SUMS.txt

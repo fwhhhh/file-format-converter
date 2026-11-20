@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0
+
+- PDF → Word layout without Microsoft Word, using pdfplumber; scanned PDFs
+  automatically fall back to OCR Word
+- Optional Explorer context-menu and Open with integration in the installers
+- Open files or folders passed on the command line, reusing the running window
+  for multi-file Explorer selections
+- Startup check for newer GitHub releases (opens the download page; no silent
+  self-update)
+- SHA-256 checksums for release artifacts
+
 ## 0.7.1
 
 - Add AVIF image reading and writing

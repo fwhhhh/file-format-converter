@@ -22,6 +22,7 @@ class DummySettings:
     subtitle_track = 1
     image_max_size = 0
     video_height = 0
+    check_updates = False
 
 
 def test_conversion_flow(qapp, tmp_path, monkeypatch):

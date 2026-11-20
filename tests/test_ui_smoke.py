@@ -20,6 +20,7 @@ class DummySettings:
     subtitle_track = 1
     image_max_size = 0
     video_height = 0
+    check_updates = False
 
 
 def test_main_window_smoke(qapp, tmp_path):
